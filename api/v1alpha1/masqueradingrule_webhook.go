@@ -1,0 +1,56 @@
+/*
+SPDX-FileCopyrightText: 2023 SAP SE or an SAP affiliate company and dns-masquerading-operator contributors
+SPDX-License-Identifier: Apache-2.0
+*/
+
+package v1alpha1
+
+import (
+	"k8s.io/apimachinery/pkg/runtime"
+	ctrl "sigs.k8s.io/controller-runtime"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
+)
+
+// log is for logging in this package.
+var masqueradingrulelog = logf.Log.WithName("masqueradingrule-resource")
+
+func (r *MasqueradingRule) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewWebhookManagedBy(mgr).
+		For(r).
+		Complete()
+}
+
+//+kubebuilder:webhook:path=/mutate-dns-cs-sap-com-v1alpha1-masqueradingrule,mutating=true,failurePolicy=fail,sideEffects=None,groups=dns.cs.sap.com,resources=masqueradingrules,verbs=create;update,versions=v1alpha1,name=mmasqueradingrule.kb.io,admissionReviewVersions=v1
+
+var _ webhook.Defaulter = &MasqueradingRule{}
+
+// Default implements webhook.Defaulter so a webhook will be registered for the type
+func (r *MasqueradingRule) Default() {
+	masqueradingrulelog.Info("default", "name", r.Name)
+}
+
+//+kubebuilder:webhook:path=/validate-dns-cs-sap-com-v1alpha1-masqueradingrule,mutating=false,failurePolicy=fail,sideEffects=None,groups=dns.cs.sap.com,resources=masqueradingrules,verbs=create;update;delete,versions=v1alpha1,name=vmasqueradingrule.kb.io,admissionReviewVersions=v1
+
+var _ webhook.Validator = &MasqueradingRule{}
+
+// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
+func (r *MasqueradingRule) ValidateCreate() error {
+	masqueradingrulelog.Info("validate create", "name", r.Name)
+
+	return nil
+}
+
+// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
+func (r *MasqueradingRule) ValidateUpdate(old runtime.Object) error {
+	masqueradingrulelog.Info("validate update", "name", r.Name)
+
+	return nil
+}
+
+// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
+func (r *MasqueradingRule) ValidateDelete() error {
+	masqueradingrulelog.Info("validate delete", "name", r.Name)
+
+	return nil
+}

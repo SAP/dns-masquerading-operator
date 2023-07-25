@@ -1,0 +1,78 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dns-masquerading-operator-webhook
+  namespace: default
+spec:
+  ports:
+  - port: 443
+    protocol: TCP
+    targetPort: 2443
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: dns-masquerading-operator-webhook
+  namespace: default
+subsets:
+- addresses:
+  - ip: ${HOST_IP}
+  ports:
+  - port: 2443
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: dns-masquerading-operator-webhook
+  namespace: default
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: dns-masquerading-operator-webhook
+  namespace: default
+spec:
+  dnsNames:
+  - dns-masquerading-operator-webhook
+  - dns-masquerading-operator-webhook.default
+  - dns-masquerading-operator-webhook.default.svc
+  - dns-masquerading-operator-webhook.default.svc.cluster.local
+  issuerRef:
+    name: dns-masquerading-operator-webhook
+  secretName: dns-masquerading-operator-webhook
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: dns-masquerading-operator-webhook
+  annotations:
+    cert-manager.io/inject-ca-from: default/dns-masquerading-operator-webhook
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: dns-masquerading-operator-webhook
+      namespace: default
+      path: /validate-dns-cs-sap-com-v1alpha1-masqueradingrule
+      port: 443
+  name: validate.masqueradingrules.dns.cs.sap.com
+  rules:
+  - apiGroups:
+    - dns.cs.sap.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - masqueradingrules
+    scope: Namespaced
+  matchPolicy: Equivalent
+  sideEffects: None
+  timeoutSeconds: 10
+  failurePolicy: Fail
