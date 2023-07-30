@@ -23,7 +23,7 @@ type GatewayReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=networking.istio.io,resources=gateways,verbs=get;list;watch
+//+kubebuilder:rbac:groups=networking.istio.io,resources=gateways,verbs=get;list;watch;update
 
 // Reconcile a gateway resource
 func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, err error) {

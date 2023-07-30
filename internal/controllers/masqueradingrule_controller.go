@@ -32,10 +32,6 @@ import (
 	"github.com/sap/dns-masquerading-operator/internal/coredns"
 )
 
-const (
-	finalizer = "dns.cs.sap.com/masquerading-operator"
-)
-
 // MasqueradingRuleReconciler reconciles a MasqueradingRule object
 type MasqueradingRuleReconciler struct {
 	client.Client
@@ -95,35 +91,44 @@ func (r *MasqueradingRuleReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 	// Create events on owners (if any)
 	defer func() {
-		for _, ownerRef := range masqueradingRule.OwnerReferences {
-			if masqueradingRule.Status.State == dnsv1alpha1.MasqueradingRuleStateReady && previousMasqueradingRuleStatus.State != dnsv1alpha1.MasqueradingRuleStateReady {
-				if err := r.createEventForOwnerRef(
-					ctx,
-					masqueradingRule.Namespace,
-					ownerRef,
-					corev1.EventTypeNormal,
-					"ReconciliationSucceeded",
-					"Masquerading rule %s/%s (host %s) successfully reconciled",
-					masqueradingRule.Namespace,
-					masqueradingRule.Name,
-					masqueradingRule.Spec.From,
-				); err != nil {
-					log.Error(err, "failed to record event for owner", "version", ownerRef.APIVersion, "kind", ownerRef.Kind, "name", ownerRef.Name)
-				}
-			} else if masqueradingRule.Status.State == dnsv1alpha1.MasqueradingRuleStateError && previousMasqueradingRuleStatus.State != dnsv1alpha1.MasqueradingRuleStateError {
-				if err := r.createEventForOwnerRef(
-					ctx,
-					masqueradingRule.Namespace,
-					ownerRef,
-					corev1.EventTypeWarning,
-					"ReconciliationFailed",
-					"Masquerading rule %s/%s (host %s) reconciliation failed",
-					masqueradingRule.Namespace,
-					masqueradingRule.Name,
-					masqueradingRule.Spec.From,
-				); err != nil {
-					log.Error(err, "failed to record event for owner", "version", ownerRef.APIVersion, "kind", ownerRef.Kind, "name", ownerRef.Name)
-				}
+		if _, ok := masqueradingRule.Labels[labelControllerUid]; !ok {
+			return
+		}
+		gvk := schema.GroupVersionKind{
+			Group:   masqueradingRule.Labels[labelControllerGroup],
+			Version: masqueradingRule.Labels[labelControllerVersion],
+			Kind:    masqueradingRule.Labels[labelControllerKind],
+		}
+		name := masqueradingRule.Labels[labelControllerName]
+		if masqueradingRule.Status.State == dnsv1alpha1.MasqueradingRuleStateReady && previousMasqueradingRuleStatus.State != dnsv1alpha1.MasqueradingRuleStateReady {
+			if err := r.createEventForObject(
+				ctx,
+				gvk,
+				masqueradingRule.Namespace,
+				name,
+				corev1.EventTypeNormal,
+				"ReconciliationSucceeded",
+				"Masquerading rule %s/%s (host %s) successfully reconciled",
+				masqueradingRule.Namespace,
+				masqueradingRule.Name,
+				masqueradingRule.Spec.From,
+			); err != nil {
+				log.Error(err, "failed to record event for owner", "group", gvk.Group, "version", gvk.Version, "kind", gvk.Kind, "name", name)
+			}
+		} else if masqueradingRule.Status.State == dnsv1alpha1.MasqueradingRuleStateError && previousMasqueradingRuleStatus.State != dnsv1alpha1.MasqueradingRuleStateError {
+			if err := r.createEventForObject(
+				ctx,
+				gvk,
+				masqueradingRule.Namespace,
+				name,
+				corev1.EventTypeWarning,
+				"ReconciliationFailed",
+				"Masquerading rule %s/%s (host %s) reconciliation failed",
+				masqueradingRule.Namespace,
+				masqueradingRule.Name,
+				masqueradingRule.Spec.From,
+			); err != nil {
+				log.Error(err, "failed to record event for owner", "group", gvk.Group, "version", gvk.Version, "kind", gvk.Kind, "name", name)
 			}
 		}
 	}()
@@ -171,7 +176,7 @@ func (r *MasqueradingRuleReconciler) Reconcile(ctx context.Context, req ctrl.Req
 					r.CorednsConfigMapKey: ruleset.String(),
 				},
 			}
-			if err := r.Create(ctx, configMap, &client.CreateOptions{}); err != nil {
+			if err := r.Create(ctx, configMap); err != nil {
 				return ctrl.Result{}, errors.Wrapf(err, "error creating config map %s/%s", configMap.Namespace, configMap.Name)
 			}
 			log.V(1).Info("configmap successfully created", "namespace", r.CorednsConfigMapNamespace, "name", r.CorednsConfigMapName)
@@ -190,7 +195,7 @@ func (r *MasqueradingRuleReconciler) Reconcile(ctx context.Context, req ctrl.Req
 					configMap.Data = make(map[string]string)
 				}
 				configMap.Data[r.CorednsConfigMapKey] = ruleset.String()
-				if err := r.Update(ctx, configMap, &client.UpdateOptions{}); err != nil {
+				if err := r.Update(ctx, configMap); err != nil {
 					return ctrl.Result{}, errors.Wrapf(err, "error updating config map %s/%s", configMap.Namespace, configMap.Name)
 				}
 				log.V(1).Info("configmap successfully updated", "namespace", r.CorednsConfigMapNamespace, "name", r.CorednsConfigMapName)
@@ -232,7 +237,7 @@ func (r *MasqueradingRuleReconciler) Reconcile(ctx context.Context, req ctrl.Req
 					configMap.Data = make(map[string]string)
 				}
 				configMap.Data[r.CorednsConfigMapKey] = ruleset.String()
-				if err := r.Update(ctx, configMap, &client.UpdateOptions{}); err != nil {
+				if err := r.Update(ctx, configMap); err != nil {
 					return ctrl.Result{}, errors.Wrapf(err, "error updating config map %s/%s", configMap.Namespace, configMap.Name)
 				}
 				log.V(1).Info("configmap successfully updated", "namespace", r.CorednsConfigMapNamespace, "name", r.CorednsConfigMapName)
@@ -255,13 +260,13 @@ func (r *MasqueradingRuleReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	}
 }
 
-// Record an event for an owner reference
-func (r *MasqueradingRuleReconciler) createEventForOwnerRef(ctx context.Context, namespace string, ownerRef metav1.OwnerReference, eventType string, reason string, message string, args ...interface{}) error {
-	owner, err := r.Scheme.New(schema.FromAPIVersionAndKind(ownerRef.APIVersion, ownerRef.Kind))
+// Record an event for specified object
+func (r *MasqueradingRuleReconciler) createEventForObject(ctx context.Context, gvk schema.GroupVersionKind, namespace string, name string, eventType string, reason string, message string, args ...interface{}) error {
+	owner, err := r.Scheme.New(gvk)
 	if err != nil {
 		return err
 	}
-	if err := r.Get(ctx, types.NamespacedName{Namespace: namespace, Name: ownerRef.Name}, owner.(client.Object), &client.GetOptions{}); err != nil {
+	if err := r.Get(ctx, types.NamespacedName{Namespace: namespace, Name: name}, owner.(client.Object)); err != nil {
 		return err
 	}
 	r.Recorder.Eventf(owner, eventType, reason, message, args...)
