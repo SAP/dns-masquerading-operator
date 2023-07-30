@@ -10,11 +10,11 @@ For example:
 - Azure: [https://github.com/MicrosoftDocs/azure-docs/blob/main/articles/aks/coredns-custom.md](https://github.com/MicrosoftDocs/azure-docs/blob/main/articles/aks/coredns-custom.md)
 - Gardener [https://github.com/gardener/gardener/blob/master/docs/usage/custom-dns-config.md](https://github.com/gardener/gardener/blob/master/docs/usage/custom-dns-config.md).
 
-A common usecase of this feature is to add DNS rewrite rules to the cluster DNS, leveraging the [coredns rewrite module](https://coredns.io/plugins/rewrite/).
+A common usecase of this feature is to add DNS masquerading rules to the cluster DNS, leveraging the coredns [rewrite](https://coredns.io/plugins/rewrite/) and [hosts](https://coredns.io/plugins/hosts/) modules.
 
-From a technical perspective, the extension usually happens by defining a key in some config map, containing a coredns configuration snippet, which will be included into the cluster's main coredns configuration. The operator provided by this repository allows to declaratively manage such a config map key containing rewrite rules in a declarative way.
+From a technical perspective, the extension usually happens by defining a key in some config map, containing a coredns configuration snippet, which will be included into the cluster's main coredns configuration. The operator provided by this repository allows to declaratively manage such a config map key in a declarative way.
 
-Rewrite rules are maintained through the custom resource `MasqueradingRule` (group `dns.cs.sap.com`), such as:
+The masquerading rules are maintained through the custom resource `MasqueradingRule` (group `dns.cs.sap.com`), such as:
 
 ```yaml
 apiVersion: dns.cs.sap.com/v1alpha1
@@ -23,13 +23,17 @@ metadata:
   namespace: my-namespace
   name: my-rule
 spec:
-  from: hostname.to.be.rewritten
-  to: target.hostname
+  from: <hostname to be rewritten>
+  to: <target hostname or IP address>
 ```
 
-As a result, the cluster's coredns will be configured to answer DNS lookups for `hostname.to.be.rewritten` with the IP address(es) that `target.hostname` is pointing to.
+As a result, the cluster's coredns will be configured to answer DNS lookups for ` <hostname to be rewritten>`
+- with the IP address directly specified in the `to` field, or
+- with the IP address(es) that the `<target hostname>` resolves to.
 
-A special (but important) case is to rewrite external DNS names of services, ingresses or istio gateways to some cluster-internal endpoint.
+A wildcard DNS name (first DNS label being '*') is allowed to be specified as `from`, if `to` is a DNS name too.
+
+A special (but important) usecase is to rewrite external DNS names of services, ingresses or istio gateways to some cluster-internal endpoint.
 To support this usecase, the operator optionally allows to automatically maintain according `MasqueradingRule` instances by annotating services, ingresses, or istio gateways, such as:
 
 ```yaml

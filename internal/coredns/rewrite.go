@@ -12,6 +12,8 @@ import (
 
 	"github.com/sap/go-generics/maps"
 	"github.com/sap/go-generics/slices"
+
+	"github.com/sap/dns-masquerading-operator/internal/netutil"
 )
 
 type RewriteRule struct {
@@ -38,9 +40,19 @@ func ParseRewriteRuleSet(s string) (*RewriteRuleSet, error) {
 		return rs, nil
 	}
 	lines := strings.Split(s, "\n")
+	have_hosts := false
 	for i := 0; i < len(lines); i++ {
+		if lines[i] == "hosts {" && !have_hosts {
+			have_hosts = true
+			continue
+		}
+		if lines[i] == "  fallthrough" && i+1 < len(lines) && lines[i+1] == "}" {
+			have_hosts = false
+			i++
+			continue
+		}
 		owner := ""
-		if m := regexp.MustCompile(`^# owner: (.+)$`).FindStringSubmatch(lines[i]); m != nil {
+		if m := regexp.MustCompile(`^\s*# owner: (.+)$`).FindStringSubmatch(lines[i]); m != nil {
 			owner = m[1]
 		} else {
 			return nil, fmt.Errorf("error parsing rewrite rules (at line %d)", i+1)
@@ -50,7 +62,7 @@ func ParseRewriteRuleSet(s string) (*RewriteRuleSet, error) {
 			return nil, fmt.Errorf("error parsing rewrite rules (premature end of file)")
 		}
 		from := ""
-		if m := regexp.MustCompile(`^# from: (.+)$`).FindStringSubmatch(lines[i]); m != nil {
+		if m := regexp.MustCompile(`^\s*# from: (.+)$`).FindStringSubmatch(lines[i]); m != nil {
 			from = m[1]
 		} else {
 			return nil, fmt.Errorf("error parsing rewrite rules (at line %d)", i+1)
@@ -60,7 +72,7 @@ func ParseRewriteRuleSet(s string) (*RewriteRuleSet, error) {
 			return nil, fmt.Errorf("error parsing rewrite rules (premature end of file)")
 		}
 		to := ""
-		if m := regexp.MustCompile(`^# to: (.+)$`).FindStringSubmatch(lines[i]); m != nil {
+		if m := regexp.MustCompile(`^\s*# to: (.+)$`).FindStringSubmatch(lines[i]); m != nil {
 			to = m[1]
 		} else {
 			return nil, fmt.Errorf("error parsing rewrite rules (at line %d)", i+1)
@@ -69,8 +81,14 @@ func ParseRewriteRuleSet(s string) (*RewriteRuleSet, error) {
 		if i >= len(lines) {
 			return nil, fmt.Errorf("error parsing rewrite rules (premature end of file)")
 		}
-		if !regexp.MustCompile(`^rewrite name (exact|regex) (\S+) (\S+)$`).MatchString(lines[i]) {
-			return nil, fmt.Errorf("error parsing rewrite rules (at line %d)", i+1)
+		if have_hosts {
+			if !regexp.MustCompile(`^\s*\S+\s+\S+$`).MatchString(lines[i]) {
+				return nil, fmt.Errorf("error parsing rewrite rules (at line %d)", i+1)
+			}
+		} else {
+			if !regexp.MustCompile(`^\s*rewrite name (exact|regex) (\S+) (\S+)$`).MatchString(lines[i]) {
+				return nil, fmt.Errorf("error parsing rewrite rules (at line %d)", i+1)
+			}
 		}
 		if err := rs.AddRule(RewriteRule{Owner: owner, From: from, To: to}); err != nil {
 			return nil, err
@@ -91,6 +109,18 @@ func (rs *RewriteRuleSet) GetRule(owner string) *RewriteRule {
 }
 
 func (rs *RewriteRuleSet) AddRule(r RewriteRule) error {
+	if err := netutil.CheckDnsName(r.From, true); err != nil {
+		return fmt.Errorf("error adding rewrite rule %s:%s (%s); invalid source: %s", r.From, r.To, r.Owner, err)
+	}
+	if netutil.IsIpAddress(r.To) {
+		if netutil.IsWildcardDnsName(r.From) {
+			return fmt.Errorf("error adding rewrite rule %s:%s (%s); wildcards are not allowed with IP address targets", r.From, r.To, r.Owner)
+		}
+	} else {
+		if err := netutil.CheckDnsName(r.To, false); err != nil {
+			return fmt.Errorf("error adding rewrite rule %s:%s (%s); invalid target: %s", r.From, r.To, r.Owner, err)
+		}
+	}
 	if s, ok := rs.rulesByFrom[r.From]; ok {
 		// a rule with r.From exists
 		if s.Owner == r.Owner {
@@ -128,22 +158,40 @@ func (rs *RewriteRuleSet) RemoveRule(owner string) error {
 }
 
 func (rs *RewriteRuleSet) String() string {
-	lines := make([]string, 4*len(rs.rulesByFrom))
-	i := 0
+	lines := make([]string, 0, 4*len(rs.rulesByFrom)+3)
+	haveHosts := false
 	for _, o := range slices.Sort(maps.Keys(rs.rulesByOwner)) {
 		r := rs.rulesByOwner[o]
-		lines[i] = fmt.Sprintf("# owner: %s", r.Owner)
-		i++
-		lines[i] = fmt.Sprintf("# from: %s", r.From)
-		i++
-		lines[i] = fmt.Sprintf("# to: %s", r.To)
-		i++
-		if r.From[0] == '*' {
-			lines[i] = fmt.Sprintf("rewrite name regex %s %s", strings.ReplaceAll(strings.ReplaceAll(r.From, `.`, `\.`), `*`, `.*`), r.To)
-		} else {
-			lines[i] = fmt.Sprintf("rewrite name exact %s %s", r.From, r.To)
+		if !netutil.IsIpAddress(r.To) {
+			continue
 		}
-		i++
+		if !haveHosts {
+			haveHosts = true
+			lines = append(lines, "hosts {")
+		}
+		lines = append(lines, fmt.Sprintf("  # owner: %s", r.Owner))
+		lines = append(lines, fmt.Sprintf("  # from: %s", r.From))
+		lines = append(lines, fmt.Sprintf("  # to: %s", r.To))
+		lines = append(lines, fmt.Sprintf("  %s %s", r.To, r.From))
+	}
+	if haveHosts {
+		haveHosts = false
+		lines = append(lines, "  fallthrough")
+		lines = append(lines, "}")
+	}
+	for _, o := range slices.Sort(maps.Keys(rs.rulesByOwner)) {
+		r := rs.rulesByOwner[o]
+		if netutil.IsIpAddress(r.To) {
+			continue
+		}
+		lines = append(lines, fmt.Sprintf("# owner: %s", r.Owner))
+		lines = append(lines, fmt.Sprintf("# from: %s", r.From))
+		lines = append(lines, fmt.Sprintf("# to: %s", r.To))
+		if netutil.IsWildcardDnsName(r.From) {
+			lines = append(lines, fmt.Sprintf("rewrite name regex %s %s", strings.ReplaceAll(strings.ReplaceAll(r.From, `.`, `\.`), `*`, `.*`), r.To))
+		} else {
+			lines = append(lines, fmt.Sprintf("rewrite name exact %s %s", r.From, r.To))
+		}
 	}
 	return strings.Join(lines, "\n")
 }

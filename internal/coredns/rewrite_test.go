@@ -8,6 +8,7 @@ package coredns
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -44,14 +45,33 @@ func checkRuleSetConsistency(rs *RewriteRuleSet) error {
 	return nil
 }
 
+const (
+	owner1 = "owner1"
+	owner2 = "owner2"
+	owner3 = "owner3"
+	owner4 = "owner4"
+	owner9 = "owner9"
+	from1  = "from1.example.io"
+	from2  = "from2.example.io"
+	from3  = "*.other.io"
+	from4  = "from4.example.io"
+	from9  = "from9.other.io"
+	to1    = "to1.example.io"
+	to2    = "to2.example.io"
+	to3    = "to3.example.io"
+	to4    = "1.2.3.4"
+	to9    = "to9.example.io"
+)
+
 func createSampleRuleSet() *RewriteRuleSet {
-	r1 := &RewriteRule{Owner: "o1", From: "f1", To: "ta"}
-	r2 := &RewriteRule{Owner: "o2", From: "f2", To: "tb"}
-	r3 := &RewriteRule{Owner: "o3", From: "*f3", To: "tb"}
+	r1 := &RewriteRule{Owner: owner1, From: from1, To: to1}
+	r2 := &RewriteRule{Owner: owner2, From: from2, To: to2}
+	r3 := &RewriteRule{Owner: owner3, From: from3, To: to3}
+	r4 := &RewriteRule{Owner: owner4, From: from4, To: to4}
 
 	rs := &RewriteRuleSet{
-		rulesByFrom:  map[string]*RewriteRule{"f1": r1, "f2": r2, "*f3": r3},
-		rulesByOwner: map[string]*RewriteRule{"o1": r1, "o2": r2, "o3": r3},
+		rulesByFrom:  map[string]*RewriteRule{from1: r1, from2: r2, from3: r3, from4: r4},
+		rulesByOwner: map[string]*RewriteRule{owner1: r1, owner2: r2, owner3: r3, owner4: r4},
 	}
 
 	if err := checkRuleSetConsistency(rs); err != nil {
@@ -62,17 +82,31 @@ func createSampleRuleSet() *RewriteRuleSet {
 }
 
 func createSampleRuleSetString() string {
-	return "# owner: o1\n# from: f1\n# to: ta\nrewrite name exact f1 ta\n# owner: o2\n# from: f2\n# to: tb\nrewrite name exact f2 tb\n# owner: o3\n# from: *f3\n# to: tb\nrewrite name regex .*f3 tb"
+	return fmt.Sprintf("hosts {\n  # owner: %[11]s\n  # from: %[12]s\n  # to: %[13]s\n  %[13]s %[12]s\n  fallthrough\n}\n# owner: %[1]s\n# from: %[2]s\n# to: %[3]s\nrewrite name exact %[2]s %[3]s\n# owner: %[4]s\n# from: %[5]s\n# to: %[6]s\nrewrite name exact %[5]s %[6]s\n# owner: %[7]s\n# from: %[8]s\n# to: %[9]s\nrewrite name regex %[10]s %[9]s",
+		owner1,
+		from1,
+		to1,
+		owner2,
+		from2,
+		to2,
+		owner3,
+		from3,
+		to3,
+		strings.ReplaceAll(strings.ReplaceAll(from3, `.`, `\.`), `*`, `.*`),
+		owner4,
+		from4,
+		to4,
+	)
 }
 
 func TestGetRule1(t *testing.T) {
 	testName := "get existing rule"
 	rs := createSampleRuleSet()
-	r := rs.GetRule("o2")
+	r := rs.GetRule(owner2)
 	if r == nil {
 		t.Fatalf("%s: unable to get existing rule", testName)
 	}
-	if !reflect.DeepEqual(r, &RewriteRule{Owner: "o2", From: "f2", To: "tb"}) {
+	if !reflect.DeepEqual(r, &RewriteRule{Owner: owner2, From: from2, To: to2}) {
 		t.Fatalf("%s: got unexpected rule", testName)
 	}
 }
@@ -80,7 +114,7 @@ func TestGetRule1(t *testing.T) {
 func TestGetRule2(t *testing.T) {
 	testName := "get non-existing rule"
 	rs := createSampleRuleSet()
-	r := rs.GetRule("o9")
+	r := rs.GetRule(owner9)
 	if r != nil {
 		t.Fatalf("%s: unexpectedly found non-existing rule", testName)
 	}
@@ -89,7 +123,7 @@ func TestGetRule2(t *testing.T) {
 func TestAddRule1(t *testing.T) {
 	testName := "add identical rule"
 	rs := createSampleRuleSet()
-	if err := rs.AddRule(RewriteRule{Owner: "o1", From: "f1", To: "ta"}); err != nil {
+	if err := rs.AddRule(RewriteRule{Owner: owner1, From: from1, To: to1}); err != nil {
 		t.Fatalf("%s: got unexpected error: %s", testName, err)
 	}
 	if err := checkRuleSetConsistency(rs); err != nil {
@@ -104,14 +138,14 @@ func TestAddRule1(t *testing.T) {
 func TestAddRule2(t *testing.T) {
 	testName := "add rule with existing owner and same from"
 	rs := createSampleRuleSet()
-	if err := rs.AddRule(RewriteRule{Owner: "o1", From: "f1", To: "tx"}); err != nil {
+	if err := rs.AddRule(RewriteRule{Owner: owner1, From: from1, To: to9}); err != nil {
 		t.Fatalf("%s: got unexpected error: %s", testName, err)
 	}
 	if err := checkRuleSetConsistency(rs); err != nil {
 		t.Fatalf("%s: %s", testName, err)
 	}
 	rsexp := createSampleRuleSet()
-	rsexp.rulesByOwner["o1"].To = "tx"
+	rsexp.rulesByOwner[owner1].To = to9
 	if !reflect.DeepEqual(rs, rsexp) {
 		t.Errorf("%s: unexpected ruleset", testName)
 	}
@@ -120,17 +154,17 @@ func TestAddRule2(t *testing.T) {
 func TestAddRule3(t *testing.T) {
 	testName := "add rule with existing owner and new from"
 	rs := createSampleRuleSet()
-	if err := rs.AddRule(RewriteRule{Owner: "o1", From: "f9", To: "tx"}); err != nil {
+	if err := rs.AddRule(RewriteRule{Owner: owner1, From: from9, To: to9}); err != nil {
 		t.Fatalf("%s: got unexpected error: %s", testName, err)
 	}
 	if err := checkRuleSetConsistency(rs); err != nil {
 		t.Fatalf("%s: %s", testName, err)
 	}
 	rsexp := createSampleRuleSet()
-	rsexp.rulesByOwner["o1"].From = "f9"
-	rsexp.rulesByOwner["o1"].To = "tx"
-	rsexp.rulesByFrom["f9"] = rsexp.rulesByOwner["o1"]
-	delete(rsexp.rulesByFrom, "f1")
+	rsexp.rulesByOwner[owner1].From = from9
+	rsexp.rulesByOwner[owner1].To = to9
+	rsexp.rulesByFrom[from9] = rsexp.rulesByOwner[owner1]
+	delete(rsexp.rulesByFrom, from1)
 	if !reflect.DeepEqual(rs, rsexp) {
 		t.Errorf("%s: unexpected ruleset", testName)
 	}
@@ -139,7 +173,7 @@ func TestAddRule3(t *testing.T) {
 func TestAddRule4(t *testing.T) {
 	testName := "add rule with existing owner and conflicting from"
 	rs := createSampleRuleSet()
-	if err := rs.AddRule(RewriteRule{Owner: "o1", From: "f2", To: "tx"}); err == nil {
+	if err := rs.AddRule(RewriteRule{Owner: owner1, From: from2, To: to9}); err == nil {
 		t.Fatalf("%s: got unexpected success", testName)
 	} else {
 		t.Logf("%s: got error: %s", testName, err)
@@ -149,15 +183,15 @@ func TestAddRule4(t *testing.T) {
 func TestAddRule5(t *testing.T) {
 	testName := "add rule with new owner and new from"
 	rs := createSampleRuleSet()
-	if err := rs.AddRule(RewriteRule{Owner: "o9", From: "f9", To: "tx"}); err != nil {
+	if err := rs.AddRule(RewriteRule{Owner: owner9, From: from9, To: to9}); err != nil {
 		t.Fatalf("%s: got unexpected error: %s", testName, err)
 	}
 	if err := checkRuleSetConsistency(rs); err != nil {
 		t.Fatalf("%s: %s", testName, err)
 	}
 	rsexp := createSampleRuleSet()
-	rsexp.rulesByOwner["o9"] = &RewriteRule{Owner: "o9", From: "f9", To: "tx"}
-	rsexp.rulesByFrom["f9"] = rsexp.rulesByOwner["o9"]
+	rsexp.rulesByOwner[owner9] = &RewriteRule{Owner: owner9, From: from9, To: to9}
+	rsexp.rulesByFrom[from9] = rsexp.rulesByOwner[owner9]
 	if !reflect.DeepEqual(rs, rsexp) {
 		t.Errorf("%s: unexpected ruleset", testName)
 	}
@@ -166,7 +200,7 @@ func TestAddRule5(t *testing.T) {
 func TestAddRule6(t *testing.T) {
 	testName := "add rule with new owner and existing from"
 	rs := createSampleRuleSet()
-	if err := rs.AddRule(RewriteRule{Owner: "o9", From: "f1", To: "tx"}); err == nil {
+	if err := rs.AddRule(RewriteRule{Owner: owner9, From: from1, To: to9}); err == nil {
 		t.Fatalf("%s: got unexpected success", testName)
 	} else {
 		t.Logf("%s: got error: %s", testName, err)
@@ -176,12 +210,12 @@ func TestAddRule6(t *testing.T) {
 func TestRemoveRule1(t *testing.T) {
 	testName := "remove existing rule"
 	rs := createSampleRuleSet()
-	if err := rs.RemoveRule("o1"); err != nil {
+	if err := rs.RemoveRule(owner1); err != nil {
 		t.Fatalf("%s: got unexpected error: %s", testName, err)
 	}
 	rsexp := createSampleRuleSet()
-	delete(rsexp.rulesByOwner, "o1")
-	delete(rsexp.rulesByFrom, "f1")
+	delete(rsexp.rulesByOwner, owner1)
+	delete(rsexp.rulesByFrom, from1)
 	if !reflect.DeepEqual(rs, rsexp) {
 		t.Errorf("%s: unexpected ruleset", testName)
 	}
@@ -190,7 +224,7 @@ func TestRemoveRule1(t *testing.T) {
 func TestRemoveRule2(t *testing.T) {
 	testName := "remove non-existing rule"
 	rs := createSampleRuleSet()
-	if err := rs.RemoveRule("o9"); err == nil {
+	if err := rs.RemoveRule(owner9); err == nil {
 		t.Fatalf("%s: got unexpected success", testName)
 	} else {
 		t.Logf("%s: got error: %s", testName, err)
