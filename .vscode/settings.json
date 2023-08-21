@@ -1,6 +1,5 @@
 {
     "go.testEnvVars": {
-      "KUBEBUILDER_ASSETS": "${workspaceFolder}/bin/k8s/current",
-      "TEST_ASSET_COREDNS": "${workspaceFolder}/bin/coredns"
+      "KUBEBUILDER_ASSETS": "${workspaceFolder}/bin/k8s/current"
     }
 }

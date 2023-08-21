@@ -41,7 +41,7 @@ help: ## Display this help.
 
 .PHONY: manifests
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	$(CONTROLLER_GEN) rbac:roleName=manager-role crd webhook paths="main.go" paths="./api/..." paths="./pkg/..." paths="./internal/..." output:crd:artifacts:config=config/crd/bases
+	$(CONTROLLER_GEN) rbac:roleName=manager-role crd:generateEmbeddedObjectMeta=true webhook paths="main.go" paths="./api/..." paths="./pkg/..." paths="./internal/..." output:crd:artifacts:config=config/crd/bases
 	rm -rf crds && cp -r config/crd/bases crds
 
 .PHONY: generate
@@ -58,8 +58,8 @@ vet: ## Run go vet against code.
 	go vet ./...
 
 .PHONY: test
-test: manifests generate fmt vet envtest coredns ## Run tests.
-	KUBEBUILDER_ASSETS="$(LOCALBIN)/k8s/current" TEST_ASSET_COREDNS="$(LOCALBIN)/coredns" go test ./... -coverprofile cover.out
+test: manifests generate fmt vet envtest ## Run tests.
+	KUBEBUILDER_ASSETS="$(LOCALBIN)/k8s/current" go test ./... -coverprofile cover.out
 
 ##@ Build
 
@@ -82,7 +82,7 @@ docker-build: test ## Build docker image with the manager.
 docker-push: ## Push docker image with the manager.
 	docker push ${IMG}
 
-# PLATFORMS defines the target platforms for  the manager image be build to provide support to multiple
+# PLATFORMS defines the target platforms for the manager image be build to provide support to multiple
 # architectures. (i.e. make docker-buildx IMG=myregistry/mypoperator:0.0.1). To use this option you need to:
 # - able to use docker buildx . More info: https://docs.docker.com/build/buildx/
 # - have enable BuildKit, More info: https://docs.docker.com/develop/develop-images/build_enhancements/
@@ -133,7 +133,6 @@ $(LOCALBIN):
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 ENVTEST ?= $(LOCALBIN)/setup-envtest
-COREDNS ?= $(LOCALBIN)/coredns
 CLIENT_GEN ?= $(shell pwd)/bin/client-gen
 INFORMER_GEN ?= $(shell pwd)/bin/informer-gen
 LISTER_GEN ?= $(shell pwd)/bin/lister-gen
@@ -159,13 +158,10 @@ envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
 $(ENVTEST): $(LOCALBIN)
 	test -s $(LOCALBIN)/setup-envtest || GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
 	ENVTESTDIR=$$($(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path) ;\
+	chmod -R u+w $$ENVTESTDIR ;\
 	rm -f $(LOCALBIN)/k8s/current ;\
-	ln -s $$ENVTESTDIR $(LOCALBIN)/k8s/current
-
-.PHONY: coredns
-coredns: $(COREDNS) ## Download coredns
-$(COREDNS): $(LOCALBIN)
-	test -s $(LOCALBIN)/coredns || ./hack/download-coredns $(COREDNS_VERSION) $(LOCALBIN)/coredns
+	ln -s $$ENVTESTDIR $(LOCALBIN)/k8s/current ;\
+	test -s $(LOCALBIN)/k8s/current/coredns || ./hack/download-coredns $(COREDNS_VERSION) $(LOCALBIN)/k8s/current/coredns
 
 .PHONY: client-gen
 client-gen: $(CLIENT_GEN) ## Download client-gen
