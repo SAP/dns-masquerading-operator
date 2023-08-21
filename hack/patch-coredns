@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+
+set -eo pipefail
+
+tempdir=$(mktemp -d)
+trap 'rm -rf $tempdir' EXIT
+
+# patch coredns config map
+
+kubectl -n kube-system get cm coredns -o jsonpath='{.data.Corefile}' > $tempdir/Corefile
+
+cat > $tempdir/Corefile.patch <<END
+@@ -17,4 +17,5 @@
+     loop
+     reload
+     loadbalance
++    import custom/*.override
+ }
+END
+
+patch -s -N $tempdir/Corefile $tempdir/Corefile.patch
+
+kubectl -n kube-system create cm coredns --from-file Corefile=$tempdir/Corefile --dry-run=client -o yaml > $tempdir/configmap-patch.yaml
+kubectl -n kube-system patch cm coredns --patch-file $tempdir/configmap-patch.yaml
+
+# patch coredns deployment
+
+cat > $tempdir/deployment-patch.yaml <<END
+spec:
+  template:
+    spec:
+      containers:
+      - name: coredns
+        volumeMounts:
+        - mountPath: /etc/coredns/custom
+          name: custom-config-volume
+          readOnly: true
+      volumes:
+      - configMap:
+          defaultMode: 420
+          name: coredns-custom
+          optional: true
+        name: custom-config-volume
+END
+
+kubectl -n kube-system patch deployment coredns --patch-file $tempdir/deployment-patch.yaml

@@ -7,33 +7,93 @@ package coredns
 
 import (
 	"fmt"
+	"net"
 	"regexp"
 	"strings"
 
+	"github.com/sap/dns-masquerading-operator/internal/dnsutil"
 	"github.com/sap/go-generics/maps"
 	"github.com/sap/go-generics/slices"
-
-	"github.com/sap/dns-masquerading-operator/internal/netutil"
 )
 
+// Rewrite rule (usually derived from a MasqueradingRule object)
 type RewriteRule struct {
-	Owner string
-	From  string
-	To    string
+	owner string
+	from  string
+	to    string
 }
 
+// Create new RewriteRule object (and validate input)
+func NewRewriteRule(owner string, from string, to string) (*RewriteRule, error) {
+	if err := dnsutil.CheckDnsName(from, false, true); err != nil {
+		return nil, err
+	}
+	if net.ParseIP(to) == nil {
+		if err := dnsutil.CheckDnsName(to, false, false); err != nil {
+			return nil, err
+		}
+	} else {
+		if strings.Split(from, ".")[0] == "*" {
+			return nil, fmt.Errorf("error validating rewrite rule: source must not be a wildcard DNS name if target is an IP address")
+		}
+	}
+	return &RewriteRule{owner: owner, from: from, to: to}, nil
+}
+
+// Return owner of a RewriteRule
+func (r *RewriteRule) Owner() string {
+	return r.owner
+}
+
+// Return rewrite source (from) of a RewriteRule
+func (r *RewriteRule) From() string {
+	return r.from
+}
+
+// Return rewrite target (to) of a RewriteRule
+func (r *RewriteRule) To() string {
+	return r.to
+}
+
+// Check if RewriteRule matches given DNS name; that is, if the rewrite rule's source
+// is a wildcard DNS name, it is checked whether that wildcard name matches host
+// (note that in that case, host may be a - less specific - wildcard pattern itself);
+// otherwise, just check for equality of the rewrite rule's source and host.
+func (r *RewriteRule) Matches(host string) bool {
+	if strings.Split(r.from, ".")[0] == "*" {
+		return strings.HasSuffix(host, r.from[1:])
+	} else {
+		return host == r.from
+	}
+}
+
+// check if rewrite rule source is a wildcard DNS name
+func (r *RewriteRule) fromIsWildcard() bool {
+	return strings.Split(r.from, ".")[0] == "*"
+}
+
+// check if rewrite rule target is an IP address
+func (r *RewriteRule) toIsIpaddress() bool {
+	return net.ParseIP(r.to) != nil
+}
+
+// Set of RewriteRule
 type RewriteRuleSet struct {
-	rulesByFrom  map[string]*RewriteRule
 	rulesByOwner map[string]*RewriteRule
 }
 
+// Create empty RewriteRuleSet; RewriteRuleSet gives the following guarantees:
+//   - uniquness of owners, that is, for a given owner, the set contains
+//     at most one RewriteRule with that owner
+//   - rewrite sources in the set are free of clashes; that is, for a given DNS name,
+//     there will be at most one RewriteRule matching that DNS name (via Matches()).
 func NewRewriteRuleSet() *RewriteRuleSet {
 	return &RewriteRuleSet{
-		rulesByFrom:  make(map[string]*RewriteRule),
 		rulesByOwner: make(map[string]*RewriteRule),
 	}
 }
 
+// Parse RewriteRuleSet from a coredns config file format
 func ParseRewriteRuleSet(s string) (*RewriteRuleSet, error) {
 	rs := NewRewriteRuleSet()
 	if s == "" {
@@ -42,13 +102,13 @@ func ParseRewriteRuleSet(s string) (*RewriteRuleSet, error) {
 	lines := strings.Split(s, "\n")
 	have_hosts := false
 	for i := 0; i < len(lines); i++ {
-		if lines[i] == "hosts {" && !have_hosts {
+		if lines[i] == "hosts /dev/null {" && !have_hosts {
 			have_hosts = true
 			continue
 		}
-		if lines[i] == "  fallthrough" && i+1 < len(lines) && lines[i+1] == "}" {
+		if i+2 < len(lines) && lines[i] == "  ttl 10" && lines[i+1] == "  fallthrough" && lines[i+2] == "}" {
 			have_hosts = false
-			i++
+			i += 2
 			continue
 		}
 		owner := ""
@@ -90,107 +150,102 @@ func ParseRewriteRuleSet(s string) (*RewriteRuleSet, error) {
 				return nil, fmt.Errorf("error parsing rewrite rules (at line %d)", i+1)
 			}
 		}
-		if err := rs.AddRule(RewriteRule{Owner: owner, From: from, To: to}); err != nil {
+		r, err := NewRewriteRule(owner, from, to)
+		if err != nil {
+			return nil, err
+		}
+		if _, err := rs.AddRule(r); err != nil {
 			return nil, err
 		}
 	}
 	return rs, nil
 }
 
+// Get RewriteRule for specified owner; return nil if none was found;
+// otherwise, the result is unique because of the guarantees given by RewriteRuleSet.
 func (rs *RewriteRuleSet) GetRule(owner string) *RewriteRule {
-	if s, ok := rs.rulesByOwner[owner]; ok {
-		return &RewriteRule{
-			Owner: s.Owner,
-			From:  s.From,
-			To:    s.To,
+	if r, ok := rs.rulesByOwner[owner]; ok {
+		return r
+	}
+	return nil
+}
+
+// Find RewriteRule matching given DNS name; return nil if none was found;
+// otherwise, the result is unique because of the guarantees given by RewriteRuleSet.
+func (rs *RewriteRuleSet) FindMatchingRule(host string) *RewriteRule {
+	for _, s := range rs.rulesByOwner {
+		if s.Matches(host) {
+			return s
 		}
 	}
 	return nil
 }
 
-func (rs *RewriteRuleSet) AddRule(r RewriteRule) error {
-	if err := netutil.CheckDnsName(r.From, true); err != nil {
-		return fmt.Errorf("error adding rewrite rule %s:%s (%s); invalid source: %s", r.From, r.To, r.Owner, err)
-	}
-	if netutil.IsIpAddress(r.To) {
-		if netutil.IsWildcardDnsName(r.From) {
-			return fmt.Errorf("error adding rewrite rule %s:%s (%s); wildcards are not allowed with IP address targets", r.From, r.To, r.Owner)
-		}
-	} else {
-		if err := netutil.CheckDnsName(r.To, false); err != nil {
-			return fmt.Errorf("error adding rewrite rule %s:%s (%s); invalid target: %s", r.From, r.To, r.Owner, err)
+// Add RewriteRule to set; may fail if the given rule would violate the consistency guarantees of the RewriteRuleSet;
+// the boolean return value indicates whether something changed in the set (true) or if the rule was already there (false).
+func (rs *RewriteRuleSet) AddRule(r *RewriteRule) (bool, error) {
+	var s *RewriteRule
+	for _, t := range rs.rulesByOwner {
+		if t.owner != r.owner && (t.Matches(r.from) || r.Matches(t.from)) {
+			s = t
+			break
 		}
 	}
-	if s, ok := rs.rulesByFrom[r.From]; ok {
-		// a rule with r.From exists
-		if s.Owner == r.Owner {
-			// and that rule's owner matches r.Owner
-			s.To = r.To
-		} else {
-			// and that rule's owner does not match r.Owner (i.e. duplicate rule)
-			return fmt.Errorf("error adding rewrite rule %s:%s (%s); conflicts with rule %s:%s (%s)", r.From, r.To, r.Owner, s.From, s.To, s.Owner)
-		}
-	} else {
-		// no rule with r.From exists
-		if s, ok := rs.rulesByOwner[r.Owner]; ok {
-			// and a rule with r.Owner exists
-			delete(rs.rulesByFrom, s.From)
-			s.From = r.From
-			s.To = r.To
-			rs.rulesByFrom[s.From] = s
-		} else {
-			// and no rule with r.Owner exists
-			rs.rulesByFrom[r.From] = &r
-			rs.rulesByOwner[r.Owner] = &r
-		}
+	if s != nil {
+		return false, fmt.Errorf("error adding rewrite rule %s:%s (%s); conflicts with rule %s:%s (%s)", r.from, r.to, r.owner, s.from, s.to, s.owner)
 	}
-	return nil
+	s = rs.rulesByOwner[r.owner]
+	changed := s == nil || r.from != s.from || r.to != s.to
+	rs.rulesByOwner[r.owner] = r
+	return changed, nil
 }
 
-func (rs *RewriteRuleSet) RemoveRule(owner string) error {
-	if s, ok := rs.rulesByOwner[owner]; ok {
-		delete(rs.rulesByFrom, s.From)
+// Remove rule with given owner from set;
+// the boolean return value indicates whether something changed in the set (true) or if no rule with that owner was existing (false).
+func (rs *RewriteRuleSet) RemoveRule(owner string) bool {
+	if _, ok := rs.rulesByOwner[owner]; ok {
 		delete(rs.rulesByOwner, owner)
-	} else {
-		return fmt.Errorf("error deleting rewrite rule with owner %s; no rule found with that owner", owner)
+		return true
 	}
-	return nil
+	return false
 }
 
+// Serialize RewriteRuleSet into coredns config file format
 func (rs *RewriteRuleSet) String() string {
-	lines := make([]string, 0, 4*len(rs.rulesByFrom)+3)
+	lines := make([]string, 0, 4*len(rs.rulesByOwner)+3)
 	haveHosts := false
 	for _, o := range slices.Sort(maps.Keys(rs.rulesByOwner)) {
 		r := rs.rulesByOwner[o]
-		if !netutil.IsIpAddress(r.To) {
+		if !r.toIsIpaddress() {
 			continue
 		}
 		if !haveHosts {
 			haveHosts = true
-			lines = append(lines, "hosts {")
+			lines = append(lines, "hosts /dev/null {")
 		}
-		lines = append(lines, fmt.Sprintf("  # owner: %s", r.Owner))
-		lines = append(lines, fmt.Sprintf("  # from: %s", r.From))
-		lines = append(lines, fmt.Sprintf("  # to: %s", r.To))
-		lines = append(lines, fmt.Sprintf("  %s %s", r.To, r.From))
+		lines = append(lines, fmt.Sprintf("  # owner: %s", r.owner))
+		lines = append(lines, fmt.Sprintf("  # from: %s", r.from))
+		lines = append(lines, fmt.Sprintf("  # to: %s", r.to))
+		lines = append(lines, fmt.Sprintf("  %s %s", r.to, r.from))
 	}
 	if haveHosts {
 		haveHosts = false
+		lines = append(lines, "  ttl 10")
 		lines = append(lines, "  fallthrough")
 		lines = append(lines, "}")
 	}
 	for _, o := range slices.Sort(maps.Keys(rs.rulesByOwner)) {
 		r := rs.rulesByOwner[o]
-		if netutil.IsIpAddress(r.To) {
+		if r.toIsIpaddress() {
 			continue
 		}
-		lines = append(lines, fmt.Sprintf("# owner: %s", r.Owner))
-		lines = append(lines, fmt.Sprintf("# from: %s", r.From))
-		lines = append(lines, fmt.Sprintf("# to: %s", r.To))
-		if netutil.IsWildcardDnsName(r.From) {
-			lines = append(lines, fmt.Sprintf("rewrite name regex %s %s", strings.ReplaceAll(strings.ReplaceAll(r.From, `.`, `\.`), `*`, `.*`), r.To))
+		lines = append(lines, fmt.Sprintf("# owner: %s", r.owner))
+		lines = append(lines, fmt.Sprintf("# from: %s", r.from))
+		lines = append(lines, fmt.Sprintf("# to: %s", r.to))
+		if r.fromIsWildcard() {
+			lines = append(lines, fmt.Sprintf("rewrite name regex %s %s", strings.ReplaceAll(strings.ReplaceAll(r.from, `.`, `\.`), `*`, `.*`), r.to))
 		} else {
-			lines = append(lines, fmt.Sprintf("rewrite name exact %s %s", r.From, r.To))
+			lines = append(lines, fmt.Sprintf("rewrite name exact %s %s", r.from, r.to))
 		}
 	}
 	return strings.Join(lines, "\n")

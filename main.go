@@ -28,6 +28,7 @@ import (
 
 	dnsv1alpha1 "github.com/sap/dns-masquerading-operator/api/v1alpha1"
 	"github.com/sap/dns-masquerading-operator/internal/controllers"
+	"github.com/sap/dns-masquerading-operator/internal/coredns"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -116,7 +117,7 @@ func main() {
 		MetricsBindAddress:      metricsAddr,
 		HealthProbeBindAddress:  probeAddr,
 		Host:                    host,
-		Port:                    port,
+		Port:                    int(port),
 		LeaderElection:          enableLeaderElection,
 		LeaderElectionNamespace: leaderElectionNamespace,
 		LeaderElectionID:        LeaderElectionID,
@@ -160,12 +161,11 @@ func main() {
 	if err = (&controllers.MasqueradingRuleReconciler{
 		Client:                    mgr.GetClient(),
 		Scheme:                    mgr.GetScheme(),
-		Config:                    mgr.GetConfig(),
 		Recorder:                  mgr.GetEventRecorderFor(controllerName),
 		CorednsConfigMapNamespace: corednsConfigMapNamespace,
 		CorednsConfigMapName:      corednsConfigMapName,
 		CorednsConfigMapKey:       corednsConfigMapKey,
-		InCluster:                 inCluster,
+		Resolver:                  coredns.NewResolver(mgr.GetClient(), mgr.GetConfig(), inCluster),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "MasqueradingRule")
 		os.Exit(1)
@@ -192,16 +192,16 @@ func main() {
 	}
 }
 
-func parseAddress(address string) (string, int, error) {
+func parseAddress(address string) (string, uint16, error) {
 	host, p, err := net.SplitHostPort(address)
 	if err != nil {
-		return "", -1, err
+		return "", 0, err
 	}
-	port, err := strconv.Atoi(p)
+	port, err := strconv.ParseUint(p, 10, 16)
 	if err != nil {
-		return "", -1, err
+		return "", 0, err
 	}
-	return host, port, nil
+	return host, uint16(port), nil
 }
 
 func checkInCluster() (bool, string, error) {

@@ -3,7 +3,7 @@ SPDX-FileCopyrightText: 2023 SAP SE or an SAP affiliate company and dns-masquera
 SPDX-License-Identifier: Apache-2.0
 */
 
-package dns
+package dnsutil
 
 import (
 	"context"
@@ -16,8 +16,9 @@ import (
 
 // Lookup a DNS name on the specified DNS server, and return all IP addresses;
 // returned slice of addresses will be nil if host was not found;
+// if host is an IP address, it will be returned as such;
 // err will be set for all other error situations.
-func Lookup(host string, serverAddress string, serverPort int32) ([]string, error) {
+func Lookup(host string, serverAddress string, serverPort uint16) ([]string, error) {
 	r := &net.Resolver{
 		PreferGo: true,
 		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {

@@ -68,7 +68,7 @@ func getHostsFromService(service *corev1.Service) []string {
 	return maps.Keys(hosts)
 }
 
-// Custom predicate to filter for service type
+// custom predicate to filter for service type
 func serviceTypePredicate(serviceType corev1.ServiceType) predicate.Predicate {
 	f := func(obj client.Object, serviceType corev1.ServiceType) bool {
 		if service, ok := obj.(*corev1.Service); ok {

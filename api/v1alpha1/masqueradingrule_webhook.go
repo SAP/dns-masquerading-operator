@@ -8,7 +8,7 @@ package v1alpha1
 import (
 	"fmt"
 
-	"github.com/sap/dns-masquerading-operator/internal/netutil"
+	"github.com/sap/dns-masquerading-operator/internal/coredns"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -59,17 +59,9 @@ func (r *MasqueradingRule) ValidateDelete() error {
 }
 
 func (r *MasqueradingRule) validate() error {
-	if err := netutil.CheckDnsName(r.Spec.From, true); err != nil {
-		return fmt.Errorf("invalid .spec.from: %s (%s)", r.Spec.From, err)
-	}
-	if netutil.IsIpAddress(r.Spec.To) {
-		if netutil.IsWildcardDnsName(r.Spec.From) {
-			return fmt.Errorf("invalid .spec.to: %s (.spec.from must not be a wildcard DNS name if .spec.to is an IP address)", r.Spec.To)
-		}
-	} else {
-		if err := netutil.CheckDnsName(r.Spec.To, false); err != nil {
-			return fmt.Errorf("invalid .spec.to: %s (%s)", r.Spec.To, err)
-		}
+	_, err := coredns.NewRewriteRule("", r.Spec.From, r.Spec.To)
+	if err != nil {
+		return fmt.Errorf("invalid rule specification: %s", err)
 	}
 	return nil
 }

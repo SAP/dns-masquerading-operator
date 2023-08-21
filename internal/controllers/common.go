@@ -50,7 +50,7 @@ func manageDependents(ctx context.Context, c client.Client, obj client.Object, h
 	if obj.GetDeletionTimestamp().IsZero() {
 		var masqueradingRules []*dnsv1alpha1.MasqueradingRule
 		to := obj.GetAnnotations()[annotationMasqueradeTo]
-		// TODO: this can be removed in the future
+		// TODO: the following can be removed in the future
 		if to == "" {
 			to = obj.GetAnnotations()[annotationMasqueradeToLegacy]
 		}

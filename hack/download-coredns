@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+
+set -eo pipefail
+
+if [ $# -ne 2 ]; then
+  >&2 echo "Usage: $0 <coredns_version> <target_path>"
+  exit 1
+fi
+
+coredns_version=$1
+target_path=$2
+
+os=$(uname)
+case $os in
+  Darwin)
+    os=darwin
+    ;;
+  Linux)
+    os=linux
+    ;;
+  *)
+    >&2 echo "Unsupported OS: $os"
+    exit 1
+    ;;
+esac
+
+arch=$(uname -m)
+case $arch in
+  amd64|x86_64)
+    arch=amd64
+    ;;
+  arm64|aarch64)
+    arch=arm64
+    ;;
+  *)
+    >&2 echo "Unsupported architecture: $arch"
+    exit 1
+    ;;
+esac
+
+echo "Downloading coredns $coredns_version to $target_path"
+
+tmpdir=$(mktemp -d)
+trap 'rm -rf $tmpdir' EXIT
+
+curl -sSfLo $tmpdir/coredns.tar.gz https://github.com/coredns/coredns/releases/download/v${coredns_version}/coredns_${coredns_version}_${os}_${arch}.tgz
+tar xfz $tmpdir/coredns.tar.gz -C $tmpdir
+cp $tmpdir/coredns $target_path

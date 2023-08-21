@@ -3,6 +3,7 @@
 IMG ?= controller:latest
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.25.0
+COREDNS_VERSION= 1.10.1
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -57,8 +58,8 @@ vet: ## Run go vet against code.
 	go vet ./...
 
 .PHONY: test
-test: manifests generate fmt vet envtest ## Run tests.
-	KUBEBUILDER_ASSETS="$(LOCALBIN)/k8s/current" go test ./... -coverprofile cover.out
+test: manifests generate fmt vet envtest coredns ## Run tests.
+	KUBEBUILDER_ASSETS="$(LOCALBIN)/k8s/current" TEST_ASSET_COREDNS="$(LOCALBIN)/coredns" go test ./... -coverprofile cover.out
 
 ##@ Build
 
@@ -132,6 +133,7 @@ $(LOCALBIN):
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 ENVTEST ?= $(LOCALBIN)/setup-envtest
+COREDNS ?= $(LOCALBIN)/coredns
 CLIENT_GEN ?= $(shell pwd)/bin/client-gen
 INFORMER_GEN ?= $(shell pwd)/bin/informer-gen
 LISTER_GEN ?= $(shell pwd)/bin/lister-gen
@@ -159,6 +161,11 @@ $(ENVTEST): $(LOCALBIN)
 	ENVTESTDIR=$$($(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path) ;\
 	rm -f $(LOCALBIN)/k8s/current ;\
 	ln -s $$ENVTESTDIR $(LOCALBIN)/k8s/current
+
+.PHONY: coredns
+coredns: $(COREDNS) ## Download coredns
+$(COREDNS): $(LOCALBIN)
+	test -s $(LOCALBIN)/coredns || ./hack/download-coredns $(COREDNS_VERSION) $(LOCALBIN)/coredns
 
 .PHONY: client-gen
 client-gen: $(CLIENT_GEN) ## Download client-gen

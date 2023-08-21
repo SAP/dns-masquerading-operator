@@ -18,10 +18,11 @@ COPY pkg/ pkg/
 COPY internal/ internal/
 COPY crds/ crds/
 COPY Makefile Makefile
+COPY hack/ hack/
 
 # Run tests and build
-RUN make envtest \
- && CGO_ENABLED=0 KUBEBUILDER_ASSETS="/workspace/bin/k8s/current" go test ./... \
+RUN make envtest coredns \
+ && CGO_ENABLED=0 KUBEBUILDER_ASSETS="/workspace/bin/k8s/current" TEST_ASSET_COREDNS=/workspace/bin/coredns go test ./... \
  && CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o manager main.go
 
 # Use distroless as minimal base image to package the manager binary
