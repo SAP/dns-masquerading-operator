@@ -13,6 +13,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 // log is for logging in this package.
@@ -38,24 +39,24 @@ func (r *MasqueradingRule) Default() {
 var _ webhook.Validator = &MasqueradingRule{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *MasqueradingRule) ValidateCreate() error {
+func (r *MasqueradingRule) ValidateCreate() (admission.Warnings, error) {
 	masqueradingrulelog.Info("validate create", "name", r.Name)
 
-	return r.validate()
+	return nil, r.validate()
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *MasqueradingRule) ValidateUpdate(old runtime.Object) error {
+func (r *MasqueradingRule) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	masqueradingrulelog.Info("validate update", "name", r.Name)
 
-	return r.validate()
+	return nil, r.validate()
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *MasqueradingRule) ValidateDelete() error {
+func (r *MasqueradingRule) ValidateDelete() (admission.Warnings, error) {
 	masqueradingrulelog.Info("validate delete", "name", r.Name)
 
-	return nil
+	return nil, nil
 }
 
 func (r *MasqueradingRule) validate() error {
