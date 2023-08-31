@@ -42,6 +42,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	dnsv1alpha1 "github.com/sap/dns-masquerading-operator/api/v1alpha1"
 	"github.com/sap/dns-masquerading-operator/internal/controllers"
@@ -226,13 +228,25 @@ var _ = BeforeSuite(func() {
 
 	By("creating manager")
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
-		Scheme:                 scheme,
-		MetricsBindAddress:     "0",
+		Scheme: scheme,
+		Client: client.Options{
+			Cache: &client.CacheOptions{
+				DisableFor: []client.Object{
+					&dnsv1alpha1.MasqueradingRule{},
+					&corev1.ConfigMap{},
+				},
+			},
+		},
+		WebhookServer: webhook.NewServer(webhook.Options{
+			Host:    webhookInstallOptions.LocalServingHost,
+			Port:    webhookInstallOptions.LocalServingPort,
+			CertDir: webhookInstallOptions.LocalServingCertDir,
+		}),
+		Metrics: metricsserver.Options{
+			BindAddress: "0",
+		},
 		HealthProbeBindAddress: "0",
-		Host:                   webhookInstallOptions.LocalServingHost,
-		Port:                   webhookInstallOptions.LocalServingPort,
-		CertDir:                webhookInstallOptions.LocalServingCertDir,
-		ClientDisableCacheFor:  []client.Object{&dnsv1alpha1.MasqueradingRule{}}})
+	})
 	Expect(err).NotTo(HaveOccurred())
 
 	err = (&controllers.MasqueradingRuleReconciler{

@@ -13,7 +13,6 @@ import (
 	v1alpha1 "github.com/sap/dns-masquerading-operator/api/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
-	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	testing "k8s.io/client-go/testing"
@@ -25,9 +24,9 @@ type FakeMasqueradingRules struct {
 	ns   string
 }
 
-var masqueradingrulesResource = schema.GroupVersionResource{Group: "dns.cs.sap.com", Version: "v1alpha1", Resource: "masqueradingrules"}
+var masqueradingrulesResource = v1alpha1.SchemeGroupVersion.WithResource("masqueradingrules")
 
-var masqueradingrulesKind = schema.GroupVersionKind{Group: "dns.cs.sap.com", Version: "v1alpha1", Kind: "MasqueradingRule"}
+var masqueradingrulesKind = v1alpha1.SchemeGroupVersion.WithKind("MasqueradingRule")
 
 // Get takes name of the masqueradingRule, and returns the corresponding masqueradingRule object, and an error if there is any.
 func (c *FakeMasqueradingRules) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.MasqueradingRule, err error) {
