@@ -25,6 +25,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	dnsv1alpha1 "github.com/sap/dns-masquerading-operator/api/v1alpha1"
 	"github.com/sap/dns-masquerading-operator/internal/controllers"
@@ -93,7 +95,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	host, port, err := parseAddress(webhookAddr)
+	webhookHost, webhookPort, err := parseAddress(webhookAddr)
 	if err != nil {
 		setupLog.Error(err, "unable to parse webhook bind address")
 		os.Exit(1)
@@ -110,18 +112,27 @@ func main() {
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme: scheme,
-		ClientDisableCacheFor: []client.Object{
-			&dnsv1alpha1.MasqueradingRule{},
-			&corev1.ConfigMap{},
+		Client: client.Options{
+			Cache: &client.CacheOptions{
+				DisableFor: []client.Object{
+					&dnsv1alpha1.MasqueradingRule{},
+					&corev1.ConfigMap{},
+				},
+			},
 		},
-		MetricsBindAddress:      metricsAddr,
-		HealthProbeBindAddress:  probeAddr,
-		Host:                    host,
-		Port:                    int(port),
-		LeaderElection:          enableLeaderElection,
-		LeaderElectionNamespace: leaderElectionNamespace,
-		LeaderElectionID:        LeaderElectionID,
-		CertDir:                 webhookCertDir,
+		LeaderElection:                enableLeaderElection,
+		LeaderElectionNamespace:       leaderElectionNamespace,
+		LeaderElectionID:              LeaderElectionID,
+		LeaderElectionReleaseOnCancel: true,
+		WebhookServer: webhook.NewServer(webhook.Options{
+			Host:    webhookHost,
+			Port:    webhookPort,
+			CertDir: webhookCertDir,
+		}),
+		Metrics: metricsserver.Options{
+			BindAddress: metricsAddr,
+		},
+		HealthProbeBindAddress: probeAddr,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
@@ -192,16 +203,16 @@ func main() {
 	}
 }
 
-func parseAddress(address string) (string, uint16, error) {
+func parseAddress(address string) (string, int, error) {
 	host, p, err := net.SplitHostPort(address)
 	if err != nil {
-		return "", 0, err
+		return "", -1, err
 	}
-	port, err := strconv.ParseUint(p, 10, 16)
+	port, err := strconv.Atoi(p)
 	if err != nil {
-		return "", 0, err
+		return "", -1, err
 	}
-	return host, uint16(port), nil
+	return host, port, nil
 }
 
 func checkInCluster() (bool, string, error) {
