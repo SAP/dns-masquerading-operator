@@ -9,10 +9,10 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/sap/go-generics v0.1.10
 	istio.io/client-go v1.20.2
-	k8s.io/api v0.29.1
-	k8s.io/apimachinery v0.29.1
-	k8s.io/client-go v0.29.1
-	sigs.k8s.io/controller-runtime v0.17.0
+	k8s.io/api v0.29.2
+	k8s.io/apimachinery v0.29.2
+	k8s.io/client-go v0.29.2
+	sigs.k8s.io/controller-runtime v0.17.1
 )
 
 require (
