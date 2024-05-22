@@ -45,8 +45,7 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 		return ctrl.Result{}, nil
 	}
 
-	hosts := getHostsFromService(service)
-	if len(hosts) > 0 && service.Annotations[annotationMasqueradeTo] == "" && service.Annotations[annotationMasqueradeToLegacy] == "" {
+	if service.Annotations[annotationMasqueradeFrom] != "" && service.Annotations[annotationMasqueradeTo] == "" && service.Annotations[annotationMasqueradeToLegacy] == "" {
 		if service.Annotations == nil {
 			service.Annotations = make(map[string]string)
 		}
@@ -54,7 +53,7 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 		service.Annotations[annotationMasqueradeTo] = fmt.Sprintf("%s.%s.svc.cluster.local", service.Name, service.Namespace)
 	}
 
-	if err := manageDependents(ctx, r.Client, service, hosts); err != nil {
+	if err := manageDependents(ctx, r.Client, service, getHostsFromService(service)); err != nil {
 		return ctrl.Result{}, err
 	}
 
