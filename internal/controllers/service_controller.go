@@ -46,9 +46,6 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 	}
 
 	if service.Annotations[annotationMasqueradeFrom] != "" && service.Annotations[annotationMasqueradeTo] == "" && service.Annotations[annotationMasqueradeToLegacy] == "" {
-		if service.Annotations == nil {
-			service.Annotations = make(map[string]string)
-		}
 		// TODO: make cluster domain (cluster.local) configurable, or auto-detect it somehow
 		service.Annotations[annotationMasqueradeTo] = fmt.Sprintf("%s.%s.svc.cluster.local", service.Name, service.Namespace)
 	}

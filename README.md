@@ -54,7 +54,7 @@ For services, the masqueraded hostnames are determined from one or a combination
 - `external-dns.alpha.kubernetes.io/hostname`
 - `dns.gardener.cloud/dnsnames`
 
-Furthermore, for services, the annotation `dns.cs.sap.com/masquerade-to` is optional; if missing it will be defaulted with
+If `dns.cs.sap.com/masquerade-from` is set, then the annotation `dns.cs.sap.com/masquerade-to` is optional; if missing it will be defaulted with
 the in-cluster address of the service.
 
 ## Requirements and Setup
