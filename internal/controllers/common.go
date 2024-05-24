@@ -35,7 +35,8 @@ const (
 )
 
 const (
-	finalizer = "dns.cs.sap.com/masquerading-operator"
+	fieldOwner = "dns-masquerading-operator.cs.sap.com"
+	finalizer  = "dns.cs.sap.com/masquerading-operator"
 )
 
 // manage dependent masquerading rules of an arbitrary resource
@@ -58,7 +59,7 @@ func manageDependents(ctx context.Context, c client.Client, obj client.Object, h
 
 		if to != "" {
 			if controllerutil.AddFinalizer(obj, finalizer) {
-				if err := c.Update(ctx, obj); err != nil {
+				if err := c.Update(ctx, obj, client.FieldOwner(fieldOwner)); err != nil {
 					return errors.Wrap(err, "failed to add finalizer")
 				}
 			}
@@ -73,7 +74,7 @@ func manageDependents(ctx context.Context, c client.Client, obj client.Object, h
 				}
 				if !found {
 					masqueradingRule := buildMasqueradingRule(obj.GetNamespace(), obj.GetName(), obj.GetObjectKind().GroupVersionKind(), obj.GetName(), obj.GetUID(), from, to)
-					if err := c.Create(ctx, masqueradingRule); err != nil {
+					if err := c.Create(ctx, masqueradingRule, client.FieldOwner(fieldOwner)); err != nil {
 						return errors.Wrapf(err, "failed to create masquerading rule for host %s", from)
 					}
 					numDependents++
@@ -113,7 +114,7 @@ func manageDependents(ctx context.Context, c client.Client, obj client.Object, h
 
 	if numDependents == 0 {
 		if controllerutil.RemoveFinalizer(obj, finalizer) {
-			if err := c.Update(ctx, obj); err != nil {
+			if err := c.Update(ctx, obj, client.FieldOwner(fieldOwner)); err != nil {
 				return errors.Wrap(err, "failed to remove finalizer")
 			}
 		}
