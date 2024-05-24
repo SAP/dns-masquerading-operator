@@ -93,7 +93,7 @@ func (r *MasqueradingRuleReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			masqueradingRule.SetState(dnsv1alpha1.MasqueradingRuleStateError, err.Error())
 			r.Recorder.Event(masqueradingRule, corev1.EventTypeWarning, "ReconciliationFailed", err.Error())
 		}
-		if updateErr := r.Status().Update(ctx, masqueradingRule); updateErr != nil {
+		if updateErr := r.Status().Update(ctx, masqueradingRule, client.FieldOwner(fieldOwner)); updateErr != nil {
 			err = utilerrors.NewAggregate([]error{err, updateErr})
 			result = ctrl.Result{}
 		}
@@ -171,7 +171,7 @@ func (r *MasqueradingRuleReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		// Create/update case
 		if !slices.Contains(masqueradingRule.Finalizers, finalizer) {
 			controllerutil.AddFinalizer(masqueradingRule, finalizer)
-			if err := r.Update(ctx, masqueradingRule); err != nil {
+			if err := r.Update(ctx, masqueradingRule, client.FieldOwner(fieldOwner)); err != nil {
 				return ctrl.Result{}, errors.Wrap(err, "error setting finalizer")
 			}
 		}
@@ -196,7 +196,7 @@ func (r *MasqueradingRuleReconciler) Reconcile(ctx context.Context, req ctrl.Req
 					r.CorednsConfigMapKey: ruleset.String(),
 				},
 			}
-			if err := r.Create(ctx, configMap); err != nil {
+			if err := r.Create(ctx, configMap, client.FieldOwner(fieldOwner)); err != nil {
 				return ctrl.Result{}, errors.Wrapf(err, "error creating config map %s/%s", configMap.Namespace, configMap.Name)
 			}
 			log.V(1).Info("configmap successfully created", "namespace", r.CorednsConfigMapNamespace, "name", r.CorednsConfigMapName)
@@ -235,7 +235,7 @@ func (r *MasqueradingRuleReconciler) Reconcile(ctx context.Context, req ctrl.Req
 				configMap.Annotations[annotationLastUpdatedAt] = now.Format(time.RFC3339Nano)
 				// end
 				configMap.Data[r.CorednsConfigMapKey] = ruleset.String()
-				if err := r.Update(ctx, configMap); err != nil {
+				if err := r.Update(ctx, configMap, client.FieldOwner(fieldOwner)); err != nil {
 					return ctrl.Result{}, errors.Wrapf(err, "error updating config map %s/%s", configMap.Namespace, configMap.Name)
 				}
 				log.V(1).Info("configmap successfully updated", "namespace", r.CorednsConfigMapNamespace, "name", r.CorednsConfigMapName)
@@ -295,7 +295,7 @@ func (r *MasqueradingRuleReconciler) Reconcile(ctx context.Context, req ctrl.Req
 				configMap.Annotations[annotationLastUpdatedAt] = now.Format(time.RFC3339Nano)
 				// end
 				configMap.Data[r.CorednsConfigMapKey] = ruleset.String()
-				if err := r.Update(ctx, configMap); err != nil {
+				if err := r.Update(ctx, configMap, client.FieldOwner(fieldOwner)); err != nil {
 					return ctrl.Result{}, errors.Wrapf(err, "error updating config map %s/%s", configMap.Namespace, configMap.Name)
 				}
 				log.V(1).Info("configmap successfully updated", "namespace", r.CorednsConfigMapNamespace, "name", r.CorednsConfigMapName)
@@ -305,7 +305,7 @@ func (r *MasqueradingRuleReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 		if slices.Contains(masqueradingRule.Finalizers, finalizer) {
 			controllerutil.RemoveFinalizer(masqueradingRule, finalizer)
-			if err := r.Update(ctx, masqueradingRule); err != nil {
+			if err := r.Update(ctx, masqueradingRule, client.FieldOwner(fieldOwner)); err != nil {
 				return ctrl.Result{}, errors.Wrap(err, "error clearing finalizer")
 			}
 		}
