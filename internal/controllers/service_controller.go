@@ -7,6 +7,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -44,6 +45,11 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 		return ctrl.Result{}, nil
 	}
 
+	if service.Annotations[annotationMasqueradeFrom] != "" && service.Annotations[annotationMasqueradeTo] == "" && service.Annotations[annotationMasqueradeToLegacy] == "" {
+		// TODO: make cluster domain (cluster.local) configurable, or auto-detect it somehow
+		service.Annotations[annotationMasqueradeTo] = fmt.Sprintf("%s.%s.svc.cluster.local", service.Name, service.Namespace)
+	}
+
 	if err := manageDependents(ctx, r.Client, service, getHostsFromService(service)); err != nil {
 		return ctrl.Result{}, err
 	}
@@ -54,9 +60,14 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 // getHostsFromService extracts hosts of a service resource
 func getHostsFromService(service *corev1.Service) []string {
 	hosts := make(map[string]struct{})
+	if v, ok := service.Annotations[annotationMasqueradeFrom]; ok {
+		for _, host := range strings.Split(v, ",") {
+			hosts[host] = struct{}{}
+		}
+	}
 	// services do not have a canonical way to specify external hostnames, so we just can apply some heuristic guess here ...
 	if v, ok := service.Annotations["external-dns.alpha.kubernetes.io/hostname"]; ok {
-		for _, host := range strings.Split(v, "\n") {
+		for _, host := range strings.Split(v, ",") {
 			hosts[host] = struct{}{}
 		}
 	}
@@ -84,9 +95,23 @@ func serviceTypePredicate(serviceType corev1.ServiceType) predicate.Predicate {
 	}
 }
 
+// custom predicate to filter for annotation being set
+func annotationPredicate(key string) predicate.Predicate {
+	f := func(obj client.Object, key string) bool {
+		_, ok := obj.GetAnnotations()[key]
+		return ok
+	}
+	return predicate.Funcs{
+		CreateFunc:  func(e event.CreateEvent) bool { return f(e.Object, key) },
+		UpdateFunc:  func(e event.UpdateEvent) bool { return f(e.ObjectNew, key) },
+		DeleteFunc:  func(e event.DeleteEvent) bool { return f(e.Object, key) },
+		GenericFunc: func(e event.GenericEvent) bool { return f(e.Object, key) },
+	}
+}
+
 // SetupWithManager sets up the controller with the Manager.
 func (r *ServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&corev1.Service{}, builder.WithPredicates(serviceTypePredicate(corev1.ServiceTypeLoadBalancer))).
+		For(&corev1.Service{}, builder.WithPredicates(predicate.Or(serviceTypePredicate(corev1.ServiceTypeLoadBalancer), annotationPredicate(annotationMasqueradeFrom)))).
 		Complete(r)
 }

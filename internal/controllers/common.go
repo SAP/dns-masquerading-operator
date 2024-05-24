@@ -29,6 +29,7 @@ const (
 )
 
 const (
+	annotationMasqueradeFrom     = "dns.cs.sap.com/masquerade-from"
 	annotationMasqueradeTo       = "dns.cs.sap.com/masquerade-to"
 	annotationMasqueradeToLegacy = "masquerading-operator.dns.sap.com/masquerade-to"
 )

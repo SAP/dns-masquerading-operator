@@ -48,6 +48,15 @@ spec:
   ...
 ```
 
+For ingresses and istio gateways, the masqueraded hostnames are derived from the resource's spec, in the obvious sense.
+For services, the masqueraded hostnames are determined from one or a combination of the following annotations:
+- `dns.cs.sap.com/masquerade-from`
+- `external-dns.alpha.kubernetes.io/hostname`
+- `dns.gardener.cloud/dnsnames`
+
+If `dns.cs.sap.com/masquerade-from` is set, then the annotation `dns.cs.sap.com/masquerade-to` is optional; if missing it will be defaulted with
+the in-cluster address of the service.
+
 ## Requirements and Setup
 
 The recommended deployment method is to use the [Helm chart](https://github.com/sap/dns-masquerading-operator-helm):
