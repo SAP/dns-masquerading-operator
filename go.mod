@@ -1,6 +1,6 @@
 module github.com/sap/dns-masquerading-operator
 
-go 1.22.3
+go 1.22.4
 
 require (
 	github.com/hashicorp/go-multierror v1.1.1
@@ -8,7 +8,7 @@ require (
 	github.com/onsi/gomega v1.33.1
 	github.com/pkg/errors v0.9.1
 	github.com/sap/go-generics v0.2.12
-	istio.io/client-go v1.22.0
+	istio.io/client-go v1.22.1
 	k8s.io/api v0.30.1
 	k8s.io/apimachinery v0.30.1
 	k8s.io/client-go v0.30.1
@@ -73,7 +73,7 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	istio.io/api v1.22.0-alpha.1.0.20240422184433-628d0981624d // indirect
+	istio.io/api v1.22.1-0.20240524024004-b6815be0740d // indirect
 	k8s.io/apiextensions-apiserver v0.30.1 // indirect
 	k8s.io/component-base v0.30.1 // indirect
 	k8s.io/klog/v2 v2.120.1 // indirect
