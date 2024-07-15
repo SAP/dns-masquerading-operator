@@ -7,7 +7,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.19.0
 	github.com/onsi/gomega v1.33.1
 	github.com/pkg/errors v0.9.1
-	github.com/sap/go-generics v0.2.13
+	github.com/sap/go-generics v0.2.14
 	istio.io/client-go v1.22.2
 	k8s.io/api v0.30.2
 	k8s.io/apimachinery v0.30.2
