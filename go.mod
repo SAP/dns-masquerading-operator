@@ -1,6 +1,6 @@
 module github.com/sap/dns-masquerading-operator
 
-go 1.22.5
+go 1.22.6
 
 require (
 	github.com/hashicorp/go-multierror v1.1.1
