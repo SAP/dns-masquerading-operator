@@ -14,14 +14,14 @@ import (
 	cache "k8s.io/client-go/tools/cache"
 )
 
-// MasqueradingRuleLister helps list MasqueradingRules.
+// MasqueradingRuleLister helps list Masqueradingrules.
 // All objects returned here must be treated as read-only.
 type MasqueradingRuleLister interface {
-	// List lists all MasqueradingRules in the indexer.
+	// List lists all Masqueradingrules in the indexer.
 	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*dnscssapcomv1alpha1.MasqueradingRule, err error)
-	// MasqueradingRules returns an object that can list and get MasqueradingRules.
-	MasqueradingRules(namespace string) MasqueradingRuleNamespaceLister
+	// Masqueradingrules returns an object that can list and get Masqueradingrules.
+	Masqueradingrules(namespace string) MasqueradingRuleNamespaceLister
 	MasqueradingRuleListerExpansion
 }
 
@@ -35,15 +35,15 @@ func NewMasqueradingRuleLister(indexer cache.Indexer) MasqueradingRuleLister {
 	return &masqueradingRuleLister{listers.New[*dnscssapcomv1alpha1.MasqueradingRule](indexer, dnscssapcomv1alpha1.Resource("masqueradingrule"))}
 }
 
-// MasqueradingRules returns an object that can list and get MasqueradingRules.
-func (s *masqueradingRuleLister) MasqueradingRules(namespace string) MasqueradingRuleNamespaceLister {
+// Masqueradingrules returns an object that can list and get Masqueradingrules.
+func (s *masqueradingRuleLister) Masqueradingrules(namespace string) MasqueradingRuleNamespaceLister {
 	return masqueradingRuleNamespaceLister{listers.NewNamespaced[*dnscssapcomv1alpha1.MasqueradingRule](s.ResourceIndexer, namespace)}
 }
 
-// MasqueradingRuleNamespaceLister helps list and get MasqueradingRules.
+// MasqueradingRuleNamespaceLister helps list and get Masqueradingrules.
 // All objects returned here must be treated as read-only.
 type MasqueradingRuleNamespaceLister interface {
-	// List lists all MasqueradingRules in the indexer for a given namespace.
+	// List lists all Masqueradingrules in the indexer for a given namespace.
 	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*dnscssapcomv1alpha1.MasqueradingRule, err error)
 	// Get retrieves the MasqueradingRule from the indexer for a given namespace and name.

@@ -17,8 +17,8 @@ type FakeDnsV1alpha1 struct {
 	*testing.Fake
 }
 
-func (c *FakeDnsV1alpha1) MasqueradingRules(namespace string) v1alpha1.MasqueradingRuleInterface {
-	return newFakeMasqueradingRules(c, namespace)
+func (c *FakeDnsV1alpha1) Masqueradingrules(namespace string) v1alpha1.MasqueradingRuleInterface {
+	return newFakeMasqueradingrules(c, namespace)
 }
 
 // RESTClient returns a RESTClient that is used to communicate

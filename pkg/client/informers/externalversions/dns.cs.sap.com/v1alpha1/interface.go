@@ -13,8 +13,8 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
-	// MasqueradingRules returns a MasqueradingRuleInformer.
-	MasqueradingRules() MasqueradingRuleInformer
+	// Masqueradingrules returns a MasqueradingRuleInformer.
+	Masqueradingrules() MasqueradingRuleInformer
 }
 
 type version struct {
@@ -28,7 +28,7 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
-// MasqueradingRules returns a MasqueradingRuleInformer.
-func (v *version) MasqueradingRules() MasqueradingRuleInformer {
+// Masqueradingrules returns a MasqueradingRuleInformer.
+func (v *version) Masqueradingrules() MasqueradingRuleInformer {
 	return &masqueradingRuleInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

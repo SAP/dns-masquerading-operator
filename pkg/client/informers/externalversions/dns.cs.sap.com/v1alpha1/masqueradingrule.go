@@ -22,7 +22,7 @@ import (
 )
 
 // MasqueradingRuleInformer provides access to a shared informer and lister for
-// MasqueradingRules.
+// Masqueradingrules.
 type MasqueradingRuleInformer interface {
 	Informer() cache.SharedIndexInformer
 	Lister() dnscssapcomv1alpha1.MasqueradingRuleLister
@@ -51,13 +51,13 @@ func NewFilteredMasqueradingRuleInformer(client versioned.Interface, namespace s
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.DnsV1alpha1().MasqueradingRules(namespace).List(context.TODO(), options)
+				return client.DnsV1alpha1().Masqueradingrules(namespace).List(context.TODO(), options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.DnsV1alpha1().MasqueradingRules(namespace).Watch(context.TODO(), options)
+				return client.DnsV1alpha1().Masqueradingrules(namespace).Watch(context.TODO(), options)
 			},
 		},
 		&apisdnscssapcomv1alpha1.MasqueradingRule{},

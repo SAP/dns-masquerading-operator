@@ -13,14 +13,14 @@ import (
 	gentype "k8s.io/client-go/gentype"
 )
 
-// fakeMasqueradingRules implements MasqueradingRuleInterface
-type fakeMasqueradingRules struct {
+// fakeMasqueradingrules implements MasqueradingRuleInterface
+type fakeMasqueradingrules struct {
 	*gentype.FakeClientWithList[*v1alpha1.MasqueradingRule, *v1alpha1.MasqueradingRuleList]
 	Fake *FakeDnsV1alpha1
 }
 
-func newFakeMasqueradingRules(fake *FakeDnsV1alpha1, namespace string) dnscssapcomv1alpha1.MasqueradingRuleInterface {
-	return &fakeMasqueradingRules{
+func newFakeMasqueradingrules(fake *FakeDnsV1alpha1, namespace string) dnscssapcomv1alpha1.MasqueradingRuleInterface {
+	return &fakeMasqueradingrules{
 		gentype.NewFakeClientWithList[*v1alpha1.MasqueradingRule, *v1alpha1.MasqueradingRuleList](
 			fake.Fake,
 			namespace,

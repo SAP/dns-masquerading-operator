@@ -17,7 +17,7 @@ import (
 
 type DnsV1alpha1Interface interface {
 	RESTClient() rest.Interface
-	MasqueradingRulesGetter
+	MasqueradingrulesGetter
 }
 
 // DnsV1alpha1Client is used to interact with features provided by the dns.cs.sap.com group.
@@ -25,8 +25,8 @@ type DnsV1alpha1Client struct {
 	restClient rest.Interface
 }
 
-func (c *DnsV1alpha1Client) MasqueradingRules(namespace string) MasqueradingRuleInterface {
-	return newMasqueradingRules(c, namespace)
+func (c *DnsV1alpha1Client) Masqueradingrules(namespace string) MasqueradingRuleInterface {
+	return newMasqueradingrules(c, namespace)
 }
 
 // NewForConfig creates a new DnsV1alpha1Client for the given config.

@@ -43,7 +43,7 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 	switch resource {
 	// Group=dns.cs.sap.com, Version=v1alpha1
 	case v1alpha1.SchemeGroupVersion.WithResource("masqueradingrules"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Dns().V1alpha1().MasqueradingRules().Informer()}, nil
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Dns().V1alpha1().Masqueradingrules().Informer()}, nil
 
 	}
 

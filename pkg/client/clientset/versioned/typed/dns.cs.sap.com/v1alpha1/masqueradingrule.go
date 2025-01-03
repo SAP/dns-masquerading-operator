@@ -18,10 +18,10 @@ import (
 	gentype "k8s.io/client-go/gentype"
 )
 
-// MasqueradingRulesGetter has a method to return a MasqueradingRuleInterface.
+// MasqueradingrulesGetter has a method to return a MasqueradingRuleInterface.
 // A group's client should implement this interface.
-type MasqueradingRulesGetter interface {
-	MasqueradingRules(namespace string) MasqueradingRuleInterface
+type MasqueradingrulesGetter interface {
+	Masqueradingrules(namespace string) MasqueradingRuleInterface
 }
 
 // MasqueradingRuleInterface has methods to work with MasqueradingRule resources.
@@ -39,14 +39,14 @@ type MasqueradingRuleInterface interface {
 	MasqueradingRuleExpansion
 }
 
-// masqueradingRules implements MasqueradingRuleInterface
-type masqueradingRules struct {
+// masqueradingrules implements MasqueradingRuleInterface
+type masqueradingrules struct {
 	*gentype.ClientWithList[*dnscssapcomv1alpha1.MasqueradingRule, *dnscssapcomv1alpha1.MasqueradingRuleList]
 }
 
-// newMasqueradingRules returns a MasqueradingRules
-func newMasqueradingRules(c *DnsV1alpha1Client, namespace string) *masqueradingRules {
-	return &masqueradingRules{
+// newMasqueradingrules returns a Masqueradingrules
+func newMasqueradingrules(c *DnsV1alpha1Client, namespace string) *masqueradingrules {
+	return &masqueradingrules{
 		gentype.NewClientWithList[*dnscssapcomv1alpha1.MasqueradingRule, *dnscssapcomv1alpha1.MasqueradingRuleList](
 			"masqueradingrules",
 			c.RESTClient(),
