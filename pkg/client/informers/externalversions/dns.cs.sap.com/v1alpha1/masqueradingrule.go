@@ -8,13 +8,13 @@ SPDX-License-Identifier: Apache-2.0
 package v1alpha1
 
 import (
-	"context"
+	context "context"
 	time "time"
 
-	dnscssapcomv1alpha1 "github.com/sap/dns-masquerading-operator/api/v1alpha1"
+	apisdnscssapcomv1alpha1 "github.com/sap/dns-masquerading-operator/api/v1alpha1"
 	versioned "github.com/sap/dns-masquerading-operator/pkg/client/clientset/versioned"
 	internalinterfaces "github.com/sap/dns-masquerading-operator/pkg/client/informers/externalversions/internalinterfaces"
-	v1alpha1 "github.com/sap/dns-masquerading-operator/pkg/client/listers/dns.cs.sap.com/v1alpha1"
+	dnscssapcomv1alpha1 "github.com/sap/dns-masquerading-operator/pkg/client/listers/dns.cs.sap.com/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
@@ -25,7 +25,7 @@ import (
 // MasqueradingRules.
 type MasqueradingRuleInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1alpha1.MasqueradingRuleLister
+	Lister() dnscssapcomv1alpha1.MasqueradingRuleLister
 }
 
 type masqueradingRuleInformer struct {
@@ -60,7 +60,7 @@ func NewFilteredMasqueradingRuleInformer(client versioned.Interface, namespace s
 				return client.DnsV1alpha1().MasqueradingRules(namespace).Watch(context.TODO(), options)
 			},
 		},
-		&dnscssapcomv1alpha1.MasqueradingRule{},
+		&apisdnscssapcomv1alpha1.MasqueradingRule{},
 		resyncPeriod,
 		indexers,
 	)
@@ -71,9 +71,9 @@ func (f *masqueradingRuleInformer) defaultInformer(client versioned.Interface, r
 }
 
 func (f *masqueradingRuleInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&dnscssapcomv1alpha1.MasqueradingRule{}, f.defaultInformer)
+	return f.factory.InformerFor(&apisdnscssapcomv1alpha1.MasqueradingRule{}, f.defaultInformer)
 }
 
-func (f *masqueradingRuleInformer) Lister() v1alpha1.MasqueradingRuleLister {
-	return v1alpha1.NewMasqueradingRuleLister(f.Informer().GetIndexer())
+func (f *masqueradingRuleInformer) Lister() dnscssapcomv1alpha1.MasqueradingRuleLister {
+	return dnscssapcomv1alpha1.NewMasqueradingRuleLister(f.Informer().GetIndexer())
 }

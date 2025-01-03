@@ -18,7 +18,7 @@ type FakeDnsV1alpha1 struct {
 }
 
 func (c *FakeDnsV1alpha1) MasqueradingRules(namespace string) v1alpha1.MasqueradingRuleInterface {
-	return &FakeMasqueradingRules{c, namespace}
+	return newFakeMasqueradingRules(c, namespace)
 }
 
 // RESTClient returns a RESTClient that is used to communicate

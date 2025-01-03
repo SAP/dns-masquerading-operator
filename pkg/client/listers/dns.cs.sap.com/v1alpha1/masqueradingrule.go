@@ -8,10 +8,10 @@ SPDX-License-Identifier: Apache-2.0
 package v1alpha1
 
 import (
-	v1alpha1 "github.com/sap/dns-masquerading-operator/api/v1alpha1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/client-go/tools/cache"
+	dnscssapcomv1alpha1 "github.com/sap/dns-masquerading-operator/api/v1alpha1"
+	labels "k8s.io/apimachinery/pkg/labels"
+	listers "k8s.io/client-go/listers"
+	cache "k8s.io/client-go/tools/cache"
 )
 
 // MasqueradingRuleLister helps list MasqueradingRules.
@@ -19,7 +19,7 @@ import (
 type MasqueradingRuleLister interface {
 	// List lists all MasqueradingRules in the indexer.
 	// Objects returned here must be treated as read-only.
-	List(selector labels.Selector) (ret []*v1alpha1.MasqueradingRule, err error)
+	List(selector labels.Selector) (ret []*dnscssapcomv1alpha1.MasqueradingRule, err error)
 	// MasqueradingRules returns an object that can list and get MasqueradingRules.
 	MasqueradingRules(namespace string) MasqueradingRuleNamespaceLister
 	MasqueradingRuleListerExpansion
@@ -27,25 +27,17 @@ type MasqueradingRuleLister interface {
 
 // masqueradingRuleLister implements the MasqueradingRuleLister interface.
 type masqueradingRuleLister struct {
-	indexer cache.Indexer
+	listers.ResourceIndexer[*dnscssapcomv1alpha1.MasqueradingRule]
 }
 
 // NewMasqueradingRuleLister returns a new MasqueradingRuleLister.
 func NewMasqueradingRuleLister(indexer cache.Indexer) MasqueradingRuleLister {
-	return &masqueradingRuleLister{indexer: indexer}
-}
-
-// List lists all MasqueradingRules in the indexer.
-func (s *masqueradingRuleLister) List(selector labels.Selector) (ret []*v1alpha1.MasqueradingRule, err error) {
-	err = cache.ListAll(s.indexer, selector, func(m interface{}) {
-		ret = append(ret, m.(*v1alpha1.MasqueradingRule))
-	})
-	return ret, err
+	return &masqueradingRuleLister{listers.New[*dnscssapcomv1alpha1.MasqueradingRule](indexer, dnscssapcomv1alpha1.Resource("masqueradingrule"))}
 }
 
 // MasqueradingRules returns an object that can list and get MasqueradingRules.
 func (s *masqueradingRuleLister) MasqueradingRules(namespace string) MasqueradingRuleNamespaceLister {
-	return masqueradingRuleNamespaceLister{indexer: s.indexer, namespace: namespace}
+	return masqueradingRuleNamespaceLister{listers.NewNamespaced[*dnscssapcomv1alpha1.MasqueradingRule](s.ResourceIndexer, namespace)}
 }
 
 // MasqueradingRuleNamespaceLister helps list and get MasqueradingRules.
@@ -53,36 +45,15 @@ func (s *masqueradingRuleLister) MasqueradingRules(namespace string) Masqueradin
 type MasqueradingRuleNamespaceLister interface {
 	// List lists all MasqueradingRules in the indexer for a given namespace.
 	// Objects returned here must be treated as read-only.
-	List(selector labels.Selector) (ret []*v1alpha1.MasqueradingRule, err error)
+	List(selector labels.Selector) (ret []*dnscssapcomv1alpha1.MasqueradingRule, err error)
 	// Get retrieves the MasqueradingRule from the indexer for a given namespace and name.
 	// Objects returned here must be treated as read-only.
-	Get(name string) (*v1alpha1.MasqueradingRule, error)
+	Get(name string) (*dnscssapcomv1alpha1.MasqueradingRule, error)
 	MasqueradingRuleNamespaceListerExpansion
 }
 
 // masqueradingRuleNamespaceLister implements the MasqueradingRuleNamespaceLister
 // interface.
 type masqueradingRuleNamespaceLister struct {
-	indexer   cache.Indexer
-	namespace string
-}
-
-// List lists all MasqueradingRules in the indexer for a given namespace.
-func (s masqueradingRuleNamespaceLister) List(selector labels.Selector) (ret []*v1alpha1.MasqueradingRule, err error) {
-	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
-		ret = append(ret, m.(*v1alpha1.MasqueradingRule))
-	})
-	return ret, err
-}
-
-// Get retrieves the MasqueradingRule from the indexer for a given namespace and name.
-func (s masqueradingRuleNamespaceLister) Get(name string) (*v1alpha1.MasqueradingRule, error) {
-	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
-	if err != nil {
-		return nil, err
-	}
-	if !exists {
-		return nil, errors.NewNotFound(v1alpha1.Resource("masqueradingrule"), name)
-	}
-	return obj.(*v1alpha1.MasqueradingRule), nil
+	listers.ResourceIndexer[*dnscssapcomv1alpha1.MasqueradingRule]
 }
