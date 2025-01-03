@@ -2,6 +2,7 @@
 IMG ?= dns-masquerading-operator:latest
 # K8s version used by envtest
 ENVTEST_K8S_VERSION = 1.30.3
+COREDNS_VERSION= 1.10.1
 
 # Set shell to bash
 SHELL = /usr/bin/env bash
@@ -108,10 +109,21 @@ setup-envtest: $(LOCALBIN) ## Install setup-envtest
 	ln -s setup-envtest-$$VERSION $(LOCALBIN)/setup-envtest; \
 	fi
 
+.PHONY: coredns
+coredns: $(LOCALBIN) ## Install coredns
+	if [ ! -L $(LOCALBIN)/coredns ] || [ "$$(readlink $(LOCALBIN)/coredns)" != "coredns-$(COREDNS_VERSION)" ]; then \
+	echo "Installing coredns $(COREDNS_VERSION)" && \
+	rm -f $(LOCALBIN)/coredns && \
+	./hack/download-coredns $(COREDNS_VERSION) $(LOCALBIN)/coredns-$(COREDNS_VERSION) && \
+	ln -s coredns-$(COREDNS_VERSION) $(LOCALBIN)/coredns; \
+	fi
+
 .PHONY: envtest
-envtest: setup-envtest ## Install envtest binaries
+envtest: setup-envtest coredns ## Install envtest binaries
 	@ENVTESTDIR=$$($(LOCALBIN)/setup-envtest use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path) && \
 	chmod -R u+w $$ENVTESTDIR && \
 	rm -f $(LOCALBIN)/k8s/current && \
-	ln -s $$ENVTESTDIR $(LOCALBIN)/k8s/current
+	ln -s $$ENVTESTDIR $(LOCALBIN)/k8s/current && \
+	rm -f $(LOCALBIN)/k8s/current/coredns && \
+	ln -s $(LOCALBIN)/coredns $(LOCALBIN)/k8s/current/coredns
 
