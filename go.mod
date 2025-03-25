@@ -5,17 +5,17 @@ go 1.23.4
 require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/onsi/ginkgo/v2 v2.22.2
-	github.com/onsi/gomega v1.36.2
+	github.com/onsi/gomega v1.36.3
 	github.com/pkg/errors v0.9.1
-	github.com/sap/go-generics v0.2.22
+	github.com/sap/go-generics v0.2.30
 	istio.io/client-go v1.22.3
-	k8s.io/api v0.32.0
-	k8s.io/apimachinery v0.32.0
-	k8s.io/client-go v0.32.0
-	k8s.io/code-generator v0.32.0
+	k8s.io/api v0.32.3
+	k8s.io/apimachinery v0.32.3
+	k8s.io/client-go v0.32.3
+	k8s.io/code-generator v0.32.3
 	sigs.k8s.io/controller-runtime v0.19.3
-	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20241227172013-a9b7c2dd8a97
-	sigs.k8s.io/controller-tools v0.17.0
+	sigs.k8s.io/controller-runtime/tools/setup-envtest d8b679322d5c
+	sigs.k8s.io/controller-tools v0.17.2
 )
 
 require (
