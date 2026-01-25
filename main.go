@@ -24,6 +24,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
+	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -31,7 +32,7 @@ import (
 	dnsv1alpha1 "github.com/sap/dns-masquerading-operator/api/v1alpha1"
 	"github.com/sap/dns-masquerading-operator/internal/controllers"
 	"github.com/sap/dns-masquerading-operator/internal/coredns"
-	//+kubebuilder:scaffold:imports
+	"github.com/sap/dns-masquerading-operator/internal/webhooks"
 )
 
 const (
@@ -53,7 +54,6 @@ func init() {
 	utilruntime.Must(istioscheme.AddToScheme(scheme))
 
 	utilruntime.Must(dnsv1alpha1.AddToScheme(scheme))
-	//+kubebuilder:scaffold:scheme
 }
 
 func main() {
@@ -181,11 +181,12 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "MasqueradingRule")
 		os.Exit(1)
 	}
-	if err = (&dnsv1alpha1.MasqueradingRule{}).SetupWebhookWithManager(mgr); err != nil {
+	if err = (&webhooks.MasqueradingRuleWebhook{
+		Log: ctrllog.Log.WithName("masqueradingrule-resource"),
+	}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "MasqueradingRule")
 		os.Exit(1)
 	}
-	//+kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")

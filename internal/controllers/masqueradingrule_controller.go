@@ -30,6 +30,7 @@ import (
 
 	dnsv1alpha1 "github.com/sap/dns-masquerading-operator/api/v1alpha1"
 	"github.com/sap/dns-masquerading-operator/internal/coredns"
+	"github.com/sap/dns-masquerading-operator/internal/webhooks"
 )
 
 const (
@@ -47,14 +48,6 @@ type MasqueradingRuleReconciler struct {
 	CorednsConfigMapUpdateDelay time.Duration
 	Resolver                    coredns.Resolver
 }
-
-//+kubebuilder:rbac:groups=dns.cs.sap.com,resources=masqueradingrules,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=dns.cs.sap.com,resources=masqueradingrules/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=dns.cs.sap.com,resources=masqueradingrules/finalizers,verbs=update
-//+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update
-//+kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch
-//+kubebuilder:rbac:groups="",resources=endpoints,verbs=get;list;watch
-//+kubebuilder:rbac:groups="",resources=pods/portforward,verbs=create
 
 // TODO: add status info about the duration of the reconciliation
 // (in particular how long it took to become effective in DNS)
@@ -78,7 +71,9 @@ func (r *MasqueradingRuleReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	previousMasqueradingRuleStatus := masqueradingRule.Status.DeepCopy()
 
 	// Call the defaulting webhook logic also here (because defaulting through the webhook might be incomplete in case of generateName usage)
-	masqueradingRule.Default()
+	if err := (&webhooks.MasqueradingRuleWebhook{}).Default(ctx, masqueradingRule); err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "error setting defaults")
+	}
 
 	// Acknowledge observed generation
 	masqueradingRule.Status.ObservedGeneration = masqueradingRule.Generation

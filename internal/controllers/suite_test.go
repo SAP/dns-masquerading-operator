@@ -48,8 +48,8 @@ import (
 	dnsv1alpha1 "github.com/sap/dns-masquerading-operator/api/v1alpha1"
 	"github.com/sap/dns-masquerading-operator/internal/controllers"
 	"github.com/sap/dns-masquerading-operator/internal/coredns"
+	"github.com/sap/dns-masquerading-operator/internal/webhooks"
 	"github.com/sap/go-generics/slices"
-	// +kubebuilder:scaffold:imports
 )
 
 func TestOperator(t *testing.T) {
@@ -273,7 +273,9 @@ var _ = BeforeSuite(func() {
 	}).SetupWithManager(mgr)
 	Expect(err).NotTo(HaveOccurred())
 
-	err = (&dnsv1alpha1.MasqueradingRule{}).SetupWebhookWithManager(mgr)
+	err = (&webhooks.MasqueradingRuleWebhook{
+		Log: ctrllog.Log.WithName("masqueradingrule-resource"),
+	}).SetupWebhookWithManager(mgr)
 	Expect(err).NotTo(HaveOccurred())
 
 	By("starting dummy controller-manager")
