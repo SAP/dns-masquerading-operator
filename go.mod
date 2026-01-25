@@ -16,7 +16,7 @@ require (
 	k8s.io/code-generator v0.35.0
 	sigs.k8s.io/controller-runtime v0.23.0
 	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20241227172013-a9b7c2dd8a97
-	sigs.k8s.io/controller-tools v0.17.0
+	sigs.k8s.io/controller-tools v0.20.0
 )
 
 require (
@@ -69,7 +69,7 @@ require (
 	github.com/prometheus/common v0.67.5 // indirect
 	github.com/prometheus/procfs v0.19.2 // indirect
 	github.com/spf13/afero v1.6.0 // indirect
-	github.com/spf13/cobra v1.10.0 // indirect
+	github.com/spf13/cobra v1.10.2 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
