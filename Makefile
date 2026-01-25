@@ -1,8 +1,8 @@
 # Image URL to use all building/pushing image targets
 IMG ?= dns-masquerading-operator:latest
 # K8s version used by envtest
-ENVTEST_K8S_VERSION = 1.30.3
-COREDNS_VERSION= 1.10.1
+ENVTEST_K8S_VERSION = 1.34.1
+COREDNS_VERSION= 1.13.1
 
 # Set shell to bash
 SHELL = /usr/bin/env bash
