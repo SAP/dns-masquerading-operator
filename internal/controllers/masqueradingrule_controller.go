@@ -30,6 +30,7 @@ import (
 
 	dnsv1alpha1 "github.com/sap/dns-masquerading-operator/api/v1alpha1"
 	"github.com/sap/dns-masquerading-operator/internal/coredns"
+	"github.com/sap/dns-masquerading-operator/internal/webhooks"
 )
 
 const (
@@ -78,7 +79,9 @@ func (r *MasqueradingRuleReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	previousMasqueradingRuleStatus := masqueradingRule.Status.DeepCopy()
 
 	// Call the defaulting webhook logic also here (because defaulting through the webhook might be incomplete in case of generateName usage)
-	masqueradingRule.Default()
+	if err := (&webhooks.MasqueradingRuleWebhook{}).Default(ctx, masqueradingRule); err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "error setting defaults")
+	}
 
 	// Acknowledge observed generation
 	masqueradingRule.Status.ObservedGeneration = masqueradingRule.Generation
