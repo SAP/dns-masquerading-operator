@@ -49,14 +49,6 @@ type MasqueradingRuleReconciler struct {
 	Resolver                    coredns.Resolver
 }
 
-//+kubebuilder:rbac:groups=dns.cs.sap.com,resources=masqueradingrules,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=dns.cs.sap.com,resources=masqueradingrules/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=dns.cs.sap.com,resources=masqueradingrules/finalizers,verbs=update
-//+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update
-//+kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch
-//+kubebuilder:rbac:groups="",resources=endpoints,verbs=get;list;watch
-//+kubebuilder:rbac:groups="",resources=pods/portforward,verbs=create
-
 // TODO: add status info about the duration of the reconciliation
 // (in particular how long it took to become effective in DNS)
 

@@ -33,7 +33,6 @@ import (
 	"github.com/sap/dns-masquerading-operator/internal/controllers"
 	"github.com/sap/dns-masquerading-operator/internal/coredns"
 	"github.com/sap/dns-masquerading-operator/internal/webhooks"
-	//+kubebuilder:scaffold:imports
 )
 
 const (
@@ -55,7 +54,6 @@ func init() {
 	utilruntime.Must(istioscheme.AddToScheme(scheme))
 
 	utilruntime.Must(dnsv1alpha1.AddToScheme(scheme))
-	//+kubebuilder:scaffold:scheme
 }
 
 func main() {
@@ -189,7 +187,6 @@ func main() {
 		setupLog.Error(err, "unable to create webhook", "webhook", "MasqueradingRule")
 		os.Exit(1)
 	}
-	//+kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")

@@ -50,7 +50,6 @@ import (
 	"github.com/sap/dns-masquerading-operator/internal/coredns"
 	"github.com/sap/dns-masquerading-operator/internal/webhooks"
 	"github.com/sap/go-generics/slices"
-	// +kubebuilder:scaffold:imports
 )
 
 func TestOperator(t *testing.T) {
