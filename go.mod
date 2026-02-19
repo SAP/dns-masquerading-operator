@@ -1,21 +1,21 @@
 module github.com/sap/dns-masquerading-operator
 
-go 1.25.6
+go 1.26.0
 
 require (
 	github.com/go-logr/logr v1.4.3
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/onsi/ginkgo/v2 v2.27.5
-	github.com/onsi/gomega v1.39.0
+	github.com/onsi/ginkgo/v2 v2.28.1
+	github.com/onsi/gomega v1.39.1
 	github.com/pkg/errors v0.9.1
-	github.com/sap/go-generics v0.2.50
+	github.com/sap/go-generics v0.2.53
 	istio.io/client-go v1.28.3
-	k8s.io/api v0.35.0
-	k8s.io/apimachinery v0.35.0
-	k8s.io/client-go v0.35.0
-	k8s.io/code-generator v0.35.0
-	sigs.k8s.io/controller-runtime v0.23.0
-	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20260125161707-82cc073adb06
+	k8s.io/api v0.35.1
+	k8s.io/apimachinery v0.36.0-alpha.1
+	k8s.io/client-go v0.35.1
+	k8s.io/code-generator v0.35.1
+	sigs.k8s.io/controller-runtime v0.23.1
+	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20260216173200-e4c1c38bcbdb
 	sigs.k8s.io/controller-tools v0.17.0
 )
 
@@ -50,7 +50,7 @@ require (
 	github.com/google/btree v1.1.3 // indirect
 	github.com/google/gnostic-models v0.7.1 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
-	github.com/google/pprof v0.0.0-20250820193118-f64d9cf942d6 // indirect
+	github.com/google/pprof v0.0.0-20260115054156-294ebfa9ad83 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
@@ -63,7 +63,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f // indirect
-	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/client_golang v1.23.2 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.67.5 // indirect
@@ -96,10 +96,10 @@ require (
 	k8s.io/apiextensions-apiserver v0.35.0 // indirect
 	k8s.io/gengo/v2 v2.0.0-20250922181213-ec3ebc5fd46b // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
-	k8s.io/kube-openapi v0.0.0-20251125145642-4e65d59e963e // indirect
+	k8s.io/kube-openapi v0.0.0-20260127142750-a19766b6e2d4 // indirect
 	k8s.io/utils v0.0.0-20260108192941-914a6e750570 // indirect
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
-	sigs.k8s.io/structured-merge-diff/v6 v6.3.1 // indirect
+	sigs.k8s.io/structured-merge-diff/v6 v6.3.2-0.20260122202528-d9cc6641c482 // indirect
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
