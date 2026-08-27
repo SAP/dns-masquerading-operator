@@ -9,7 +9,7 @@ require (
 	github.com/onsi/gomega v1.42.1
 	github.com/pkg/errors v0.9.1
 	github.com/sap/go-generics v0.2.71
-	istio.io/client-go v1.30.3
+	istio.io/client-go v1.30.4
 	k8s.io/api v0.36.4
 	k8s.io/apimachinery v0.36.4
 	k8s.io/client-go v0.36.4
@@ -90,7 +90,7 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	istio.io/api v1.30.3-0.20260710004328-2e43f07b30b6 // indirect
+	istio.io/api v1.30.4-0.20260824163423-69099aec2678 // indirect
 	k8s.io/apiextensions-apiserver v0.36.0 // indirect
 	k8s.io/gengo/v2 v2.0.0-20250922181213-ec3ebc5fd46b // indirect
 	k8s.io/klog/v2 v2.140.0 // indirect
