@@ -23,11 +23,39 @@ import (
 )
 
 // MasqueradingRuleInformer provides access to a shared informer and lister for
-// Masqueradingrules.
+// Masqueradingrules. Prefer using the type-safe variant (see [TypedMasqueradingRuleInformer]).
 type MasqueradingRuleInformer interface {
 	Informer() cache.SharedIndexInformer
 	Lister() dnscssapcomv1alpha1.MasqueradingRuleLister
 }
+
+// TypedMasqueradingRuleInformer provides access to a shared informer and lister for
+// Masqueradingrules, including the type-safe TypedInformer variant.
+// It is a superset of MasqueradingRuleInformer.
+type TypedMasqueradingRuleInformer interface {
+	Informer() cache.SharedIndexInformer
+	TypedInformer() MasqueradingRuleIndexInformer
+	Lister() dnscssapcomv1alpha1.MasqueradingRuleLister
+}
+
+// MasqueradingRuleIndexInformer is a wrapper around the underlying [cache.SharedIndexInformer]
+// with type-safe variants of several methods.
+type MasqueradingRuleIndexInformer cache.TypedSharedIndexInformer[*apisdnscssapcomv1alpha1.MasqueradingRule]
+
+// MasqueradingRuleHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerFuncs] for MasqueradingRule.
+type MasqueradingRuleHandlerFuncs = cache.TypedResourceEventHandlerFuncs[*apisdnscssapcomv1alpha1.MasqueradingRule]
+
+// MasqueradingRuleDetailedHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerDetailedFuncs] for MasqueradingRule.
+type MasqueradingRuleDetailedHandlerFuncs = cache.TypedResourceEventHandlerDetailedFuncs[*apisdnscssapcomv1alpha1.MasqueradingRule]
+
+// MasqueradingRuleFilteringHandler is a specialization of [cache.TypedFilteringResourceEventHandler] for MasqueradingRule.
+type MasqueradingRuleFilteringHandler = cache.TypedFilteringResourceEventHandler[*apisdnscssapcomv1alpha1.MasqueradingRule]
+
+// MasqueradingRuleIndexers is a specialization of [cache.TypedIndexers] for MasqueradingRule.
+type MasqueradingRuleIndexers = cache.TypedIndexers[*apisdnscssapcomv1alpha1.MasqueradingRule]
+
+// DeletedMasqueradingRule is a specialization of [cache.DeletedObject] for MasqueradingRule.
+type DeletedMasqueradingRule = cache.DeletedObject[*apisdnscssapcomv1alpha1.MasqueradingRule]
 
 type masqueradingRuleInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
@@ -38,25 +66,49 @@ type masqueradingRuleInformer struct {
 // NewMasqueradingRuleInformer constructs a new informer for MasqueradingRule type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedMasqueradingRuleInformer]).
 func NewMasqueradingRuleInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return NewMasqueradingRuleInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers})
+}
+
+// NewTypedMasqueradingRuleInformer constructs a new informer for MasqueradingRule type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedMasqueradingRuleInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers MasqueradingRuleIndexers) MasqueradingRuleIndexInformer {
+	return NewTypedMasqueradingRuleInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers)})
 }
 
 // NewFilteredMasqueradingRuleInformer constructs a new informer for MasqueradingRule type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedFilteredMasqueradingRuleInformer]).
 func NewFilteredMasqueradingRuleInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
-	return NewMasqueradingRuleInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+	return NewTypedMasqueradingRuleInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+}
+
+// NewTypedFilteredMasqueradingRuleInformer constructs a new informer for MasqueradingRule type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedFilteredMasqueradingRuleInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers MasqueradingRuleIndexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) MasqueradingRuleIndexInformer {
+	return NewTypedMasqueradingRuleInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers), TweakListOptions: tweakListOptions})
 }
 
 // NewMasqueradingRuleInformerWithOptions constructs a new informer for MasqueradingRule type with additional options.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedMasqueradingRuleInformerWithOptions]).
 func NewMasqueradingRuleInformerWithOptions(client versioned.Interface, namespace string, options internalinterfaces.InformerOptions) cache.SharedIndexInformer {
+	return NewTypedMasqueradingRuleInformerWithOptions(client, namespace, options)
+}
+
+// NewTypedMasqueradingRuleInformerWithOptions constructs a new informer for MasqueradingRule type with additional options.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedMasqueradingRuleInformerWithOptions(client versioned.Interface, namespace string, options internalinterfaces.InformerOptions) MasqueradingRuleIndexInformer {
 	gvr := schema.GroupVersionResource{Group: "dns.cs.sap.com", Version: "v1alpha1", Resource: "masqueradingrules"}
 	identifier := options.InformerName.WithResource(gvr)
 	tweakListOptions := options.TweakListOptions
-	return cache.NewSharedIndexInformerWithOptions(
+	return cache.NewTypedSharedIndexInformer[*apisdnscssapcomv1alpha1.MasqueradingRule](cache.NewSharedIndexInformerWithOptions(
 		cache.ToListWatcherWithWatchListSemantics(&cache.ListWatch{
 			ListFunc: func(opts v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
@@ -89,17 +141,57 @@ func NewMasqueradingRuleInformerWithOptions(client versioned.Interface, namespac
 			Indexers:     options.Indexers,
 			Identifier:   identifier,
 		},
-	)
+	))
 }
 
 func (f *masqueradingRuleInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewMasqueradingRuleInformerWithOptions(client, f.namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
+	return NewTypedMasqueradingRuleInformerWithOptions(client, f.namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
 }
 
 func (f *masqueradingRuleInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apisdnscssapcomv1alpha1.MasqueradingRule{}, f.defaultInformer)
+	return f.TypedInformer()
+}
+
+func (f *masqueradingRuleInformer) TypedInformer() MasqueradingRuleIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apisdnscssapcomv1alpha1.MasqueradingRule](f.factory.InformerFor(&apisdnscssapcomv1alpha1.MasqueradingRule{}, f.defaultInformer))
 }
 
 func (f *masqueradingRuleInformer) Lister() dnscssapcomv1alpha1.MasqueradingRuleLister {
 	return dnscssapcomv1alpha1.NewMasqueradingRuleLister(f.Informer().GetIndexer())
+}
+
+// ToTypedMasqueradingRuleInformer converts an untyped informer into a TypedMasqueradingRuleInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *MasqueradingRule. If that is not the case, calling type-safe methods of the returned
+// TypedMasqueradingRuleInformer leads to runtime panics. A safer alternative is to pass
+// around a TypedMasqueradingRuleInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToTypedMasqueradingRuleInformer(informer MasqueradingRuleInformer) TypedMasqueradingRuleInformer {
+	if informer, ok := informer.(TypedMasqueradingRuleInformer); ok {
+		return informer
+	}
+	return &masqueradingRuleTypedInformerAdapter{informer}
+}
+
+type masqueradingRuleTypedInformerAdapter struct {
+	MasqueradingRuleInformer
+}
+
+func (a *masqueradingRuleTypedInformerAdapter) TypedInformer() MasqueradingRuleIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apisdnscssapcomv1alpha1.MasqueradingRule](a.Informer())
+}
+
+// ToMasqueradingRuleIndexInformer converts an untyped informer into a MasqueradingRuleIndexInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *MasqueradingRule. If that is not the case, calling type-safe methods of the returned
+// MasqueradingRuleIndexInformer leads to runtime panics. A safer alternative is to pass
+// around a MasqueradingRuleIndexInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToMasqueradingRuleIndexInformer(informer cache.SharedIndexInformer) MasqueradingRuleIndexInformer {
+	if informer, ok := informer.(MasqueradingRuleIndexInformer); ok {
+		return informer
+	}
+	return cache.NewTypedSharedIndexInformer[*apisdnscssapcomv1alpha1.MasqueradingRule](informer)
 }
