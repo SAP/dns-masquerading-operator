@@ -11,7 +11,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sap/go-generics/maps"
 
-	istionetworkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
+	istionetworkingv1 "istio.io/client-go/pkg/apis/networking/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -29,7 +29,7 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 	log.V(1).Info("running reconcile")
 
 	// Retrieve target gateway
-	gateway := &istionetworkingv1beta1.Gateway{}
+	gateway := &istionetworkingv1.Gateway{}
 	if err := r.Get(ctx, req.NamespacedName, gateway); err != nil {
 		if err := client.IgnoreNotFound(err); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "unexpected get error")
@@ -46,7 +46,7 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 }
 
 // getHostsFromGateway extracts hosts of a gateway resource
-func getHostsFromGateway(gateway *istionetworkingv1beta1.Gateway) []string {
+func getHostsFromGateway(gateway *istionetworkingv1.Gateway) []string {
 	// TODO: consider external-dns.alpha.kubernetes.io/hostname annotation as well ?
 	hosts := make(map[string]struct{})
 	for _, server := range gateway.Spec.Servers {
@@ -60,6 +60,6 @@ func getHostsFromGateway(gateway *istionetworkingv1beta1.Gateway) []string {
 // SetupWithManager sets up the controller with the Manager.
 func (r *GatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&istionetworkingv1beta1.Gateway{}).
+		For(&istionetworkingv1.Gateway{}).
 		Complete(r)
 }
