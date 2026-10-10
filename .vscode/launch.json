@@ -12,10 +12,15 @@
             "program": "${workspaceFolder}",
             "args": [
                 "--kubeconfig=${workspaceFolder}/.kubeconfig",
+                "--metrics-bind-address=:8080",
+                "--health-probe-bind-address=:8081",
                 "--webhook-bind-address=:2443",
                 "--webhook-tls-directory=${workspaceFolder}/.local/ssl",
                 "--enable-service-controller",
-                "--enable-ingress-controller"
+                "--enable-ingress-controller",
+                "--enable-istiogateway-controller",
+                "--leader-elect",
+                "--leader-election-namespace=default"
             ]
         }
     ]

@@ -6,21 +6,23 @@ SPDX-License-Identifier: Apache-2.0
 package main
 
 import (
+	"context"
 	"flag"
 	"net"
 	"os"
 	"strconv"
+	"sync"
+	"time"
 
 	"github.com/pkg/errors"
-	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
-	// to ensure that exec-entrypoint and run can make use of them.
-	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
-	istioscheme "istio.io/client-go/pkg/clientset/versioned/scheme"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/discovery"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
@@ -28,6 +30,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+
+	istioscheme "istio.io/client-go/pkg/clientset/versioned/scheme"
 
 	dnsv1alpha1 "github.com/sap/dns-masquerading-operator/api/v1alpha1"
 	"github.com/sap/dns-masquerading-operator/internal/controllers"
@@ -139,6 +143,14 @@ func main() {
 		os.Exit(1)
 	}
 
+	discoveryClient, err := discovery.NewDiscoveryClientForConfigAndClient(mgr.GetConfig(), mgr.GetHTTPClient())
+	if err != nil {
+		setupLog.Error(err, "unable to create discovery client")
+		os.Exit(1)
+	}
+
+	var pendingTypes []schema.GroupKind
+
 	if enableServiceController {
 		if err = (&controllers.ServiceReconciler{
 			Client: mgr.GetClient(),
@@ -160,12 +172,20 @@ func main() {
 	}
 
 	if enableIstioGatewayController {
-		if err = (&controllers.GatewayReconciler{
-			Client: mgr.GetClient(),
-			Scheme: mgr.GetScheme(),
-		}).SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "Gateway")
+		gk := schema.GroupKind{Group: "networking.istio.io", Kind: "Gateway"}
+		if ok, err := checkTypeExists(discoveryClient, gk); err != nil {
+			setupLog.Error(err, "error checking type", "groupKind", gk)
 			os.Exit(1)
+		} else if ok {
+			if err = (&controllers.GatewayReconciler{
+				Client: mgr.GetClient(),
+				Scheme: mgr.GetScheme(),
+			}).SetupWithManager(mgr); err != nil {
+				setupLog.Error(err, "unable to create controller", "controller", "Gateway")
+				os.Exit(1)
+			}
+		} else {
+			pendingTypes = append(pendingTypes, gk)
 		}
 	}
 
@@ -197,11 +217,47 @@ func main() {
 		os.Exit(1)
 	}
 
+	ctx, cancel := context.WithCancel(ctrl.SetupSignalHandler())
+	defer cancel()
+	var wg sync.WaitGroup
+
+	if len(pendingTypes) > 0 {
+		wg.Go(func() {
+			select {
+			case <-ctx.Done():
+				return
+			case <-mgr.Elected():
+			}
+			ticker := time.NewTicker(60 * time.Second)
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case <-ticker.C:
+					for _, gk := range pendingTypes {
+						if ok, err := checkTypeExists(discoveryClient, gk); err != nil {
+							setupLog.Error(err, "error checking type", "groupKind", gk)
+							continue
+						} else if ok {
+							setupLog.Info("monitored type became available; exiting ...", "groupKind", gk)
+							cancel()
+							return
+						} else {
+							setupLog.Info("waiting for type to become available", "groupKind", gk)
+						}
+					}
+				}
+			}
+		})
+	}
+
 	setupLog.Info("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+	if err := mgr.Start(ctx); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+
+	wg.Wait()
 }
 
 func parseAddress(address string) (string, int, error) {
@@ -230,4 +286,23 @@ func checkInCluster() (bool, string, error) {
 	}
 
 	return true, string(namespace), nil
+}
+
+func checkTypeExists(discoveryClient discovery.DiscoveryInterface, gk schema.GroupKind) (bool, error) {
+	_, resources, err := discoveryClient.ServerGroupsAndResources()
+	if err != nil {
+		return false, err
+	}
+	for _, resourceList := range resources {
+		gv, err := schema.ParseGroupVersion(resourceList.GroupVersion)
+		if err != nil {
+			return false, err
+		}
+		for _, resource := range resourceList.APIResources {
+			if resource.Kind == gk.Kind && gv.Group == gk.Group {
+				return true, nil
+			}
+		}
+	}
+	return false, nil
 }
