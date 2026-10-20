@@ -1,6 +1,6 @@
 module github.com/sap/dns-masquerading-operator
 
-go 1.27.2
+go 1.27.3
 
 require (
 	github.com/go-logr/logr v1.4.4
