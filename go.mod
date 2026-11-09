@@ -5,10 +5,10 @@ go 1.27.3
 require (
 	github.com/go-logr/logr v1.4.4
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/onsi/ginkgo/v2 v2.33.1
+	github.com/onsi/ginkgo/v2 v2.34.0
 	github.com/onsi/gomega v1.44.0
 	github.com/pkg/errors v0.9.1
-	github.com/sap/go-generics v0.2.79
+	github.com/sap/go-generics v0.2.80
 	istio.io/client-go v1.31.4
 	k8s.io/api v0.37.2
 	k8s.io/apimachinery v0.37.2
